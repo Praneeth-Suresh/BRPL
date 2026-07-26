@@ -1,0 +1,15 @@
+version: 1
+policy_id: task-orders
+kind: task
+
+change_scope:
+  - id: task-orders-scope
+    allow:
+      - "src/orders/**"
+      - "tests/orders/**"
+    deny:
+      - ".beryl/**"
+
+required_checks:
+  - id: task-orders-require-unit
+    check: "unit"

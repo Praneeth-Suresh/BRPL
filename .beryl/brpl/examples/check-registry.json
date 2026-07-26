@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "checks": [
+    {
+      "id": "unit",
+      "command": ["python3", "-m", "unittest", "discover"],
+      "timeout_seconds": 120
+    }
+  ]
+}

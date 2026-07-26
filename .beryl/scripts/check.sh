@@ -34,6 +34,10 @@ if [[ ! -x "${BERYL_ROOT}/scripts/check-secrets.sh" ]]; then
   fail "Missing .beryl/scripts/check-secrets.sh (or not executable)."
 fi
 
+if [[ ! -x "${BERYL_ROOT}/scripts/check-brpl.sh" ]]; then
+  fail "Missing .beryl/scripts/check-brpl.sh (or not executable)."
+fi
+
 printf "Running deterministic checks...\n"
 
 "${BERYL_ROOT}/scripts/check-md.sh"
@@ -45,7 +49,16 @@ if [[ "${CHECK_AFFECTED_MODE:-worktree}" == "staged" ]]; then
 else
   "${BERYL_ROOT}/scripts/check-secrets.sh" --worktree
 fi
+if [[ "${BERYL_SELF_TEST:-}" == "1" || -f "${BERYL_ROOT}/agent/adr/0008-add-brpl-policy-gate.md" ]]; then
+  python_bin="python3"
+  if ! command -v "${python_bin}" >/dev/null 2>&1; then
+    python_bin="python"
+  fi
+  BRPL_ENFORCEMENT=off PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" \
+    "${python_bin}" -m unittest discover "${BERYL_ROOT}/brpl/tests" -p '*_test.py'
+fi
 "${BERYL_ROOT}/scripts/check-tests-unchanged.sh"
+"${BERYL_ROOT}/scripts/check-brpl.sh"
 "${BERYL_ROOT}/scripts/check-project.sh"
 
 printf "OK\n"

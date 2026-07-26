@@ -1,0 +1,31 @@
+version: 1
+policy_id: repo-default
+kind: repository
+
+change_scope:
+  - id: repo-change-scope
+    deny:
+      - ".beryl/**"
+      - ".github/workflows/**"
+      - "generated/**"
+
+protected_paths:
+  - id: repo-protect-regression
+    pattern: "tests/regression/**"
+  - id: repo-protect-pyproject
+    pattern: "pyproject.toml"
+
+architecture:
+  forbid_imports:
+    - id: repo-no-domain-infra
+      from: "src/domain/**"
+      to: "src/infrastructure/**"
+
+new_dependencies:
+  id: repo-no-new-deps
+  manifest: "pyproject.toml"
+  allow: false
+
+required_checks:
+  - id: repo-require-unit
+    check: "unit"

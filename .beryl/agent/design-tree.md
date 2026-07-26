@@ -24,6 +24,7 @@ Beryl is a relocatable hard guarantee layer for agent-ready repositories: canoni
 | Driver worktree optimization | Keep driver task execution sequential by default, but add an opt-in preflight that asks an agent for a task DAG, verifies it deterministically, and prepares task worktrees for parallel-ready waves. | 2026-07-13 | N/A |
 | Repository upkeep | Use `RepositoryUpkeep.md` as the tracked guide for idea intake, scratch promotion, maintenance cadence, and upkeep verification instead of relying on ignored `current.md` or hidden chat history. | 2026-07-13 | N/A |
 | Supported shell hosts | Support macOS system Bash and Windows Git Bash or WSL for installed scripts; keep native PowerShell limited to downloading the POSIX installer. Verify the supported hosts in GitHub Actions. | 2026-07-15 | N/A |
+| BRPL policy gate | Add machine-readable repository policies under `.beryl/brpl/` with strict data-only YAML, explicit stable rule ids, conjunctive repository/task overlays, segment-aware path globs, final-tree import/dependency analysis, stable reports, explicit Git baseline evaluation, trusted required-check adapters outside policy files, default-inactive installs, and evaluator-controlled fail-closed enforcement from external policy paths. | 2026-07-26 | `.beryl/agent/adr/0008-add-brpl-policy-gate.md` |
 
 ## Pressure Points
 
@@ -34,6 +35,7 @@ Beryl is a relocatable hard guarantee layer for agent-ready repositories: canoni
 - Driver worktree optimization depends on untrusted agent DAG output and local Git worktree state; deterministic verification and observable failure files must gate any worktree setup before task implementation starts.
 - Repository upkeep depends on maintainers promoting only durable decisions, terms, commands, and review rules into tracked files; scratch notes remain non-authoritative.
 - "Hard guarantee" must remain a process claim backed by files, scripts, manifests, and review gates, not a claim that Beryl guarantees correct code or replaces human judgment.
+- BRPL is inactive by default and baseline-explicit; evaluator-controlled enforcement must use explicit external repository and task policy paths so installed repositories are not surprised while benchmark policy deletion still fails closed.
 
 ## Recording Rule (Design Tree vs ADR)
 

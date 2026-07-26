@@ -7,6 +7,8 @@
 | Markdown sanity | `./.beryl/scripts/check-md.sh` | available | Unclosed fences and tabs |
 | Test manifest immutability check | `./.beryl/scripts/check-tests-unchanged.sh` | available | Detects changes in configured test scope from `.beryl/agent/test-manifest.conf` |
 | Affected test gate | `./.beryl/scripts/check-affected.sh --worktree` | available | Selects related tests from changed files and uses full-test fallback for broad changes |
+| BRPL unit tests | `BRPL_ENFORCEMENT=off PYTHONPATH=.beryl python3 -m unittest discover .beryl/brpl/tests -p '*_test.py'` | available | Deterministic policy parser/evaluator tests; wired into aggregate gate only in source/self-test mode |
+| BRPL policy gate | `BRPL_BASE_REF=<ref> ./.beryl/scripts/check-brpl.sh` | available | Default-inactive repository policy evaluation when BRPL policy files are configured; policy evaluation requires Python >=3.11; use `BRPL_ENFORCEMENT=enforce` with explicit external repository policy, task policy, and check registry paths for fail-closed external evaluation |
 | Aggregate deterministic gate | `./.beryl/scripts/check.sh` | available | Runs all deterministic checks |
 | Format | `not available yet` | unavailable | No formatter configured yet |
 | Lint | `not available yet` | unavailable | No linter configured yet |

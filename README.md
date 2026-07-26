@@ -79,6 +79,7 @@ curl -fsSL https://raw.githubusercontent.com/Praneeth-Suresh/Beryl/main/install.
 | `install.sh` | Remote install entry point. It installs selected Beryl profiles or components into the current repository. |
 | `.beryl/scripts/setup-project.sh` | Interactive onboarding for an existing or new project. It lets you choose the component set, including whether driver workflows are installed, and whether a coding agent should help fill project context. |
 | `.beryl/scripts/check.sh` | Deterministic safety gate for Markdown, test-manifest integrity, and configured project checks. |
+| `.beryl/scripts/check-brpl.sh` | Opt-in machine-readable policy gate. It runs only when BRPL policy files are configured and `BRPL_BASE_REF` names the Git baseline. |
 
 Install Beryl into another project interactively:
 
@@ -91,6 +92,23 @@ Run the primary repo safety gate:
 ```bash
 ./.beryl/scripts/check.sh
 ```
+
+Use the optional BRPL policy gate by adding policy files under `.beryl/policy/`
+and running with an explicit baseline:
+
+```bash
+BRPL_BASE_REF=origin/main ./.beryl/scripts/check.sh
+```
+
+Policy evaluation requires Python 3.11 or newer. For external evaluation, set
+`BRPL_ENFORCEMENT=enforce` with explicit evaluator-owned
+`BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and `BRPL_CHECK_REGISTRY` paths
+outside the evaluated repository; missing, unreadable, deleted, repo-local, or
+wrong-kind inputs fail closed. Use `--format json` for stdout reports, or write
+`--json-report` to an external evaluator-owned path outside the repository.
+
+See [.beryl/brpl/README.md](./.beryl/brpl/README.md) for the v1 schema,
+examples, JSON reports, and trusted check registry format.
 
 Detailed install flags, profiles, component examples, bootstrap controls, and
 hook troubleshooting live in [.beryl/scripts/README.md](./.beryl/scripts/README.md).

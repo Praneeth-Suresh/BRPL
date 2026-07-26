@@ -185,8 +185,18 @@ Single entrypoint:
 `check.sh` runs:
 
 1. `check-md.sh`
-2. `check-tests-unchanged.sh`
-3. `check-project.sh` (project-specific extension point)
+2. `validate-components.sh`
+3. `check-install-surface.sh`
+4. `check-secrets.sh`
+5. BRPL unit tests in Beryl source/self-test mode only
+6. `check-tests-unchanged.sh`
+7. `check-brpl.sh` when BRPL policy evaluation is configured
+8. `check-project.sh` (project-specific extension point)
+
+Inactive installed repositories do not need Python for BRPL. Active BRPL policy
+evaluation requires Python 3.11 or newer. `BRPL_ENFORCEMENT=enforce` requires
+explicit external `BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and
+`BRPL_CHECK_REGISTRY` files and does not use repo-local fallbacks.
 
 `check-project.sh` delegates to the affected test gate:
 

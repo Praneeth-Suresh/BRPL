@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beryl.local/brpl/v1/schema.json",
+  "title": "Beryl Repository Policy Language v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "policy_id", "kind"],
+  "properties": {
+    "version": { "const": 1 },
+    "policy_id": { "$ref": "#/$defs/stable_id" },
+    "kind": { "enum": ["repository", "task"] },
+    "change_scope": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/change_scope_rule" }
+    },
+    "protected_paths": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/path_pattern_rule" }
+    },
+    "architecture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "forbid_imports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "from", "to"],
+            "properties": {
+              "id": { "$ref": "#/$defs/stable_id" },
+              "from": { "$ref": "#/$defs/repo_pattern" },
+              "to": { "$ref": "#/$defs/repo_pattern" }
+            }
+          }
+        }
+      }
+    },
+    "new_dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "manifest", "allow"],
+      "properties": {
+        "id": { "$ref": "#/$defs/stable_id" },
+        "manifest": { "$ref": "#/$defs/repo_path" },
+        "allow": { "const": false }
+      }
+    },
+    "required_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "check"],
+        "properties": {
+          "id": { "$ref": "#/$defs/stable_id" },
+          "check": { "$ref": "#/$defs/stable_id" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]+$"
+    },
+    "repo_path": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "anyOf": [
+          { "pattern": "^/" },
+          { "pattern": "\\\\" },
+          { "pattern": "\\u0000" },
+          { "pattern": "(^|/)\\.($|/)" },
+          { "pattern": "(^|/)\\.\\.($|/)" }
+        ]
+      }
+    },
+    "repo_pattern": {
+      "allOf": [
+        { "$ref": "#/$defs/repo_path" },
+        {
+          "not": {
+            "anyOf": [
+              { "pattern": "/$" },
+              { "pattern": "(^|/)\\*\\*[^/]" },
+              { "pattern": "[^/]\\*\\*($|/)" },
+              { "pattern": "\\[" },
+              { "pattern": "\\]" }
+            ]
+          }
+        }
+      ]
+    },
+    "path_pattern_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "pattern"],
+      "properties": {
+        "id": { "$ref": "#/$defs/stable_id" },
+        "pattern": { "$ref": "#/$defs/repo_pattern" }
+      }
+    },
+    "change_scope_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "anyOf": [
+        { "required": ["allow"] },
+        { "required": ["deny"] }
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/stable_id" },
+        "allow": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repo_pattern" }
+        },
+        "deny": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/repo_pattern" }
+        }
+      }
+    }
+  }
+}
