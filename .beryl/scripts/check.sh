@@ -40,6 +40,9 @@ fi
 
 printf "Running deterministic checks...\n"
 
+brpl_status=0
+"${BERYL_ROOT}/scripts/check-brpl.sh" || brpl_status=$?
+
 "${BERYL_ROOT}/scripts/check-md.sh"
 "${BERYL_ROOT}/scripts/validate-components.sh"
 "${BERYL_ROOT}/scripts/check-install-surface.sh"
@@ -58,7 +61,9 @@ if [[ "${BERYL_SELF_TEST:-}" == "1" || -f "${BERYL_ROOT}/agent/adr/0008-add-brpl
     "${python_bin}" -m unittest discover "${BERYL_ROOT}/brpl/tests" -p '*_test.py'
 fi
 "${BERYL_ROOT}/scripts/check-tests-unchanged.sh"
-"${BERYL_ROOT}/scripts/check-brpl.sh"
 "${BERYL_ROOT}/scripts/check-project.sh"
 
+if ((brpl_status != 0)); then
+  exit "${brpl_status}"
+fi
 printf "OK\n"

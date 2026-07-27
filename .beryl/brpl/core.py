@@ -16,7 +16,7 @@ from typing import Any
 from .strict_yaml import StrictYAMLError, load_strict_yaml
 
 
-CHECKER_VERSION = "1.0.0"
+CHECKER_VERSION = "1.1.0"
 REPORT_SCHEMA = "brpl-report/v1"
 MAX_POLICY_BYTES = 64 * 1024
 MAX_POLICY_LINES = 2000
@@ -76,6 +76,23 @@ _TOP_KEYS = {
 }
 _CHANGE_SCOPE_RULE_KEYS = {"id", "allow", "deny"}
 _RULE_ID_KEYS = {"id"}
+_SCHEMA_METADATA_KEYS = {"$schema", "$id", "title", "$defs"}
+_SCHEMA_ASSERTION_KEYS = {
+    "$ref",
+    "allOf",
+    "anyOf",
+    "not",
+    "const",
+    "enum",
+    "type",
+    "minLength",
+    "pattern",
+    "items",
+    "properties",
+    "additionalProperties",
+    "required",
+}
+_SUPPORTED_SCHEMA_KEYS = _SCHEMA_METADATA_KEYS | _SCHEMA_ASSERTION_KEYS
 
 
 def load_policy_file(path: os.PathLike[str] | str) -> dict[str, Any]:
@@ -144,7 +161,7 @@ def evaluate_policy_set(policies: list[dict[str, Any]], config: EvaluationConfig
 
     violations: list[dict[str, Any]] = []
     for policy in policies:
-        violations.extend(_evaluate_change_scope(policy, changed_paths))
+        violations.extend(_evaluate_change_scope(policy, changes))
         violations.extend(_evaluate_protected_paths(policy, changes))
         violations.extend(_evaluate_architecture(policy, repo_root, final_source_paths, module_index))
         violations.extend(_evaluate_new_dependencies(policy, repo_root, config.base_ref))
@@ -321,6 +338,7 @@ def _bundled_policy_schema() -> dict[str, Any]:
             raise BRPLConfigError(f"cannot load bundled BRPL schema {_SCHEMA_PATH}: {exc}") from exc
         if not isinstance(schema, dict):
             raise BRPLConfigError(f"bundled BRPL schema must be a JSON object: {_SCHEMA_PATH}")
+        _validate_supported_schema(schema, root=schema)
         _BUNDLED_SCHEMA = schema
     return _BUNDLED_SCHEMA
 
@@ -370,6 +388,83 @@ def _validate_json_schema(instance: Any, schema: dict[str, Any], source: str, ro
         for key, value in instance.items():
             if key in properties:
                 _validate_json_schema(value, properties[key], f"{source}.{key}", root)
+
+
+def _validate_supported_schema(
+    schema: dict[str, Any],
+    location: str = "#",
+    *,
+    root: dict[str, Any] | None = None,
+) -> None:
+    root = schema if root is None else root
+    unknown = sorted(set(schema) - _SUPPORTED_SCHEMA_KEYS)
+    if unknown:
+        raise BRPLConfigError(
+            f"unsupported BRPL schema keyword(s) at {location}: {', '.join(unknown)}"
+        )
+    if "$ref" in schema:
+        if set(schema) != {"$ref"}:
+            raise BRPLConfigError(
+                f"BRPL schema $ref at {location} cannot have sibling keywords in the closed v1 subset"
+            )
+        _resolve_schema_ref(schema["$ref"], root)
+    for key in ("allOf", "anyOf"):
+        if key in schema:
+            value = schema[key]
+            if not isinstance(value, list) or not value or not all(isinstance(item, dict) for item in value):
+                raise BRPLConfigError(f"BRPL schema {key} at {location} must be a non-empty array of schemas")
+            for index, item in enumerate(value):
+                _validate_supported_schema(item, f"{location}/{key}/{index}", root=root)
+    if "not" in schema:
+        if not isinstance(schema["not"], dict):
+            raise BRPLConfigError(f"BRPL schema not at {location} must be a schema object")
+        _validate_supported_schema(schema["not"], f"{location}/not", root=root)
+    if "items" in schema:
+        if not isinstance(schema["items"], dict):
+            raise BRPLConfigError(f"BRPL schema items at {location} must be a schema object")
+        _validate_supported_schema(schema["items"], f"{location}/items", root=root)
+    for key in ("properties", "$defs"):
+        if key not in schema:
+            continue
+        value = schema[key]
+        if not isinstance(value, dict) or not all(
+            isinstance(name, str) and isinstance(child, dict) for name, child in value.items()
+        ):
+            raise BRPLConfigError(f"BRPL schema {key} at {location} must map names to schema objects")
+        for name, child in value.items():
+            _validate_supported_schema(child, f"{location}/{key}/{name}", root=root)
+    if "pattern" in schema:
+        if not isinstance(schema["pattern"], str):
+            raise BRPLConfigError(f"BRPL schema pattern at {location} must be a string")
+        try:
+            re.compile(schema["pattern"])
+        except (TypeError, re.error) as exc:
+            raise BRPLConfigError(f"invalid BRPL schema pattern at {location}: {exc}") from exc
+    if "type" in schema and schema["type"] not in {"object", "array", "string", "boolean", "integer"}:
+        raise BRPLConfigError(f"unsupported BRPL schema type at {location}: {schema['type']!r}")
+    if "enum" in schema and (
+        not isinstance(schema["enum"], list) or not schema["enum"]
+    ):
+        raise BRPLConfigError(f"BRPL schema enum at {location} must be a non-empty array")
+    if "minLength" in schema and (
+        not isinstance(schema["minLength"], int)
+        or isinstance(schema["minLength"], bool)
+        or schema["minLength"] < 0
+    ):
+        raise BRPLConfigError(f"BRPL schema minLength at {location} must be a non-negative integer")
+    if "required" in schema and (
+        not isinstance(schema["required"], list)
+        or not all(isinstance(item, str) for item in schema["required"])
+        or len(schema["required"]) != len(set(schema["required"]))
+    ):
+        raise BRPLConfigError(f"BRPL schema required at {location} must contain unique strings")
+    if "additionalProperties" in schema and schema["additionalProperties"] is not False:
+        raise BRPLConfigError(
+            f"BRPL schema additionalProperties at {location} must be false in the closed v1 subset"
+        )
+    for key in ("$schema", "$id", "title"):
+        if key in schema and not isinstance(schema[key], str):
+            raise BRPLConfigError(f"BRPL schema {key} at {location} must be a string")
 
 
 def _json_schema_accepts(instance: Any, schema: dict[str, Any], root: dict[str, Any]) -> bool:
@@ -514,7 +609,7 @@ def _collect_changes(repo_root: Path, base_ref: str) -> list[Change]:
 
     untracked = _git_bytes(repo_root, ["ls-files", "-z", "--others", "--exclude-standard"])
     for raw_path in [token for token in untracked.split(b"\0") if token]:
-        changes.append(Change(status="A", path=_normalize_repo_path(_decode_git_path(raw_path), "git untracked path")))
+        changes.append(Change(status="?", path=_normalize_repo_path(_decode_git_path(raw_path), "git untracked path")))
     return sorted(changes, key=lambda change: (change.path, change.old_path or "", change.status))
 
 
@@ -625,48 +720,61 @@ def _match_segment(text: str, pattern: str) -> bool:
     return re.match("".join(regex), text) is not None
 
 
-def _evaluate_change_scope(policy: dict[str, Any], changed_paths: list[str]) -> list[dict[str, Any]]:
+def _evaluate_change_scope(policy: dict[str, Any], changes: list[Change]) -> list[dict[str, Any]]:
     violations: list[dict[str, Any]] = []
     for rule in policy.get("change_scope", []) or []:
         allow_patterns = rule.get("allow") or []
         deny_patterns = rule.get("deny") or []
         if allow_patterns:
-            for path in changed_paths:
-                if any(_matches(path, pattern) for pattern in allow_patterns):
-                    continue
-                violations.append(
-                    _violation(
-                        policy,
-                        rule["id"],
-                        "change_scope",
-                        path,
-                        {
-                            "type": "path_scope",
-                            "path": path,
-                            "allow": allow_patterns,
-                            "text": f"{path} is outside allowed change scope {rule['id']}",
-                        },
-                        "Move the change under an allowed path or update the policy before changing code.",
+            for change in changes:
+                for path in change.paths:
+                    matched_allows = [pattern for pattern in allow_patterns if _matches(path, pattern)]
+                    if matched_allows:
+                        continue
+                    violations.append(
+                        _violation(
+                            policy,
+                            rule["id"],
+                            "change_scope",
+                            path,
+                            {
+                                "type": "path_scope",
+                                "status": change.status,
+                                "path": path,
+                                "allow": allow_patterns,
+                                "matched_allow": [],
+                                "text": (
+                                    f"{change.status} change at {path} is outside allowed change scope "
+                                    f"{rule['id']}"
+                                ),
+                            },
+                            "Remove the unintended artifact/change or move the intended source change under an allowed path.",
+                        )
                     )
-                )
-        for path in changed_paths:
-            matched_denies = [pattern for pattern in deny_patterns if _matches(path, pattern)]
-            if matched_denies:
-                violations.append(
-                    _violation(
-                        policy,
-                        rule["id"],
-                        "change_scope",
-                        path,
-                        {
-                            "type": "path_scope",
-                            "path": path,
-                            "deny": matched_denies,
-                            "text": f"{path} matches denied change scope {rule['id']}",
-                        },
-                        "Remove the denied change or use an approved task policy.",
+        for change in changes:
+            for path in change.paths:
+                matched_denies = [pattern for pattern in deny_patterns if _matches(path, pattern)]
+                if matched_denies:
+                    violations.append(
+                        _violation(
+                            policy,
+                            rule["id"],
+                            "change_scope",
+                            path,
+                            {
+                                "type": "path_scope",
+                                "status": change.status,
+                                "path": path,
+                                "deny": deny_patterns,
+                                "matched_deny": matched_denies,
+                                "text": (
+                                    f"{change.status} change at {path} matches denied change scope "
+                                    f"{rule['id']}: {', '.join(matched_denies)}"
+                                ),
+                            },
+                            "Remove the unintended artifact/change or move the intended source change under an allowed path.",
+                        )
                     )
-                )
     return violations
 
 

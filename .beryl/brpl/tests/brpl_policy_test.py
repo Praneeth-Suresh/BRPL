@@ -15,13 +15,19 @@ from brpl.core import (
     BRPLConfigError,
     BRPLEvaluationError,
     BRPLSchemaError,
+    CHECKER_VERSION,
+    _bundled_policy_schema,
     _validate_against_bundled_schema,
+    _validate_supported_schema,
     validate_policy,
 )
 from brpl.strict_yaml import StrictYAMLError, load_strict_yaml
 
 
 class BRPLPolicyTest(unittest.TestCase):
+    def test_checker_version_records_diagnostic_contract_change(self) -> None:
+        self.assertEqual(CHECKER_VERSION, "1.1.0")
+
     def test_all_rule_families_report_stable_explicit_ids(self) -> None:
         with repo_fixture() as repo:
             write(
@@ -324,6 +330,40 @@ class BRPLPolicyTest(unittest.TestCase):
             self.assertIn("odd/name\n\tfile.py", files)
             if hasattr(os, "symlink"):
                 self.assertIn("src/infrastructure/db.py", files)
+
+    def test_change_scope_evidence_preserves_rename_delete_and_untracked_status(self) -> None:
+        with repo_fixture() as repo:
+            write(
+                repo / ".beryl/policy/scope-status.yml",
+                """
+                version: 1
+                policy_id: status
+                kind: repository
+                change_scope:
+                  - id: deny-all
+                    deny:
+                      - "**"
+                """,
+            )
+            git(repo, "mv", "src/domain/model.py", "src/domain/renamed.py")
+            git(repo, "rm", "tests/regression/test_contract.py")
+            write(repo / "untracked.py", "x = 1\n")
+
+            report = evaluate_policy_set(
+                [load_policy_file(repo / ".beryl/policy/scope-status.yml")],
+                EvaluationConfig(repo_root=repo, base_ref="HEAD", check_results={}),
+            )
+            statuses = {
+                (violation["file"], violation["evidence"]["status"])
+                for violation in report["violations"]
+            }
+            self.assertIn(("src/domain/model.py", "R"), statuses)
+            self.assertIn(("src/domain/renamed.py", "R"), statuses)
+            self.assertIn(("tests/regression/test_contract.py", "D"), statuses)
+            self.assertIn(("untracked.py", "?"), statuses)
+            for violation in report["violations"]:
+                self.assertEqual(violation["evidence"]["matched_deny"], ["**"])
+                self.assertIn("unintended artifact/change", violation["remediation"])
 
     def test_protected_path_copy_detects_unchanged_source_and_new_path(self) -> None:
         with repo_fixture() as repo:
@@ -721,6 +761,67 @@ class BRPLPolicyTest(unittest.TestCase):
             )
             with self.assertRaisesRegex(BRPLSchemaError, "reserved key"):
                 load_policy_file(repo / ".beryl/policy/private.yml")
+
+    def test_closed_schema_subset_covers_keywords_and_rejects_bad_shapes(self) -> None:
+        schema = _bundled_policy_schema()
+        _validate_supported_schema(schema, root=schema)
+        used = {
+            "$ref",
+            "allOf",
+            "anyOf",
+            "not",
+            "const",
+            "enum",
+            "type",
+            "minLength",
+            "pattern",
+            "items",
+            "properties",
+            "additionalProperties",
+            "required",
+        }
+
+        def collect(node: object) -> set[str]:
+            if isinstance(node, dict):
+                keys = set(node) & used
+                for value in node.values():
+                    keys.update(collect(value))
+                return keys
+            if isinstance(node, list):
+                keys: set[str] = set()
+                for value in node:
+                    keys.update(collect(value))
+                return keys
+            return set()
+
+        self.assertEqual(collect(schema), used)
+        invalid = [
+            {"unsupported": True},
+            {"$ref": "https://example.invalid/schema"},
+            {"$ref": "#/$defs/missing"},
+            {"allOf": {}},
+            {"anyOf": []},
+            {"not": []},
+            {"enum": []},
+            {"type": "number"},
+            {"minLength": -1},
+            {"pattern": "["},
+            {"items": []},
+            {"properties": []},
+            {"additionalProperties": True},
+            {"required": ["x", "x"]},
+        ]
+        for candidate in invalid:
+            with self.subTest(candidate=candidate):
+                with self.assertRaises(BRPLConfigError):
+                    _validate_supported_schema(candidate, root=candidate)
+
+    def test_bundled_schema_passes_draft_2020_12_metaschema_when_available(self) -> None:
+        try:
+            import jsonschema
+        except ImportError:
+            self.skipTest("jsonschema is not installed; meta-schema validation recorded as unavailable")
+        jsonschema.Draft202012Validator.check_schema(_bundled_policy_schema())
 
     def test_cli_exit_codes_for_pass_violation_and_schema_error(self) -> None:
         with repo_fixture() as repo:
