@@ -1,0 +1,41 @@
+apiVersion: beryl.dev/brpl/v2
+kind: RepositoryPolicy
+metadata:
+  id: repository-defaults-v2
+spec:
+  combine: deny_overrides
+  rules:
+    - id: PATH-001
+      kind: change.paths
+      effect: allow
+      paths:
+        - src/**
+        - tests/**
+        - pyproject.toml
+      severity: error
+    - id: CTRL-001
+      kind: change.protect
+      paths:
+        - .beryl/**
+        - tests/regression/**
+      severity: error
+    - id: ARCH-001
+      kind: dependency.forbid
+      relation: python_import
+      source: src/api/**
+      target: src/persistence/internal/**
+      severity: error
+    - id: DEP-001
+      kind: manifest.direct_dependencies
+      manifest: pyproject.toml
+      allow_add:
+        - httpx
+      allow_remove:
+        - legacy-client
+      severity: error
+    - id: CHECK-001
+      kind: check.require
+      checks:
+        - unit
+        - lint
+      severity: error

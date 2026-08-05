@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beryl.dev/schemas/brpl-v2-evidence.schema.json",
+  "title": "Prospective BRPL v2 typed evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "candidate_tree", "git_changes", "source_dependencies", "manifest_delta", "check_results", "control_integrity"],
+  "properties": {
+    "schema": {"const": "brpl-evidence/v2"},
+    "candidate_tree": {"type": "object", "additionalProperties": false, "required": ["sha256"], "properties": {"sha256": {"$ref": "#/$defs/sha256"}}},
+    "git_changes": {"type": "array", "items": {"$ref": "#/$defs/change"}},
+    "source_dependencies": {"type": "array", "items": {"$ref": "#/$defs/dependency"}},
+    "manifest_delta": {"type": "array", "items": {"$ref": "#/$defs/manifest"}},
+    "check_results": {"type": "array", "items": {"$ref": "#/$defs/check"}},
+    "control_integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "path": {"type": "string", "minLength": 1},
+    "change": {"type": "object", "additionalProperties": false, "required": ["status", "path"], "properties": {"status": {"enum": ["added", "modified", "deleted", "renamed", "copied", "type_changed", "untracked"]}, "path": {"$ref": "#/$defs/path"}, "old_path": {"$ref": "#/$defs/path"}}},
+    "dependency": {"type": "object", "additionalProperties": false, "required": ["relation", "source", "target"], "properties": {"relation": {"$ref": "#/$defs/id"}, "source": {"$ref": "#/$defs/path"}, "target": {"$ref": "#/$defs/path"}, "line": {"type": "integer", "minimum": 1}}},
+    "manifest": {"type": "object", "additionalProperties": false, "required": ["manifest", "added", "removed"], "properties": {"manifest": {"$ref": "#/$defs/path"}, "added": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}, "removed": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}}},
+    "check": {"type": "object", "additionalProperties": false, "required": ["check", "status", "candidate_tree_sha256", "tool_id", "input_sha256"], "properties": {"check": {"$ref": "#/$defs/id"}, "status": {"enum": ["pass", "fail", "error", "timeout", "missing"]}, "candidate_tree_sha256": {"$ref": "#/$defs/sha256"}, "tool_id": {"$ref": "#/$defs/id"}, "input_sha256": {"$ref": "#/$defs/sha256"}, "evidence": {"type": "string"}}},
+    "integrity": {"type": "object", "additionalProperties": false, "required": ["control_hashes", "events"], "properties": {"control_hashes": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["target", "expected_sha256", "observed_sha256"], "properties": {"target": {"$ref": "#/$defs/id"}, "expected_sha256": {"$ref": "#/$defs/sha256"}, "observed_sha256": {"$ref": "#/$defs/sha256"}}}}, "events": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["type", "target", "operation", "sequence", "outcome", "evidence_source"], "properties": {"type": {"enum": ["gate_bypass", "control_tampering"]}, "target": {"$ref": "#/$defs/id"}, "operation": {"$ref": "#/$defs/id"}, "sequence": {"type": "integer", "minimum": 1}, "outcome": {"enum": ["denied", "succeeded"]}, "evidence_source": {"$ref": "#/$defs/id"}}}}}}
+  }
+}

@@ -1,0 +1,32 @@
+apiVersion: beryl.dev/brpl-tests/v2
+kind: PolicyTestSuite
+tests:
+  - name: internal-import-is-blocked
+    evidence:
+      schema: brpl-evidence/v2
+      candidate_tree:
+        sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      git_changes:
+        - status: modified
+          path: src/api/service.py
+      source_dependencies:
+        - relation: python_import
+          source: src/api/service.py
+          target: src/persistence/internal/store.py
+          line: 4
+      manifest_delta:
+        - manifest: pyproject.toml
+      check_results:
+        - check: unit
+          status: pass
+          candidate_tree_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          tool_id: trusted.pytest
+          input_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+        - check: lint
+          status: pass
+          candidate_tree_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          tool_id: trusted.ruff
+          input_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    expect:
+      violations:
+        - ARCH-001

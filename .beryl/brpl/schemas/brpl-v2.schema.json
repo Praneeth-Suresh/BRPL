@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beryl.dev/schemas/brpl-v2.schema.json",
+  "title": "Prospective BRPL v2 policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {"const": "beryl.dev/brpl/v2"},
+    "kind": {"enum": ["RepositoryPolicy", "TaskPolicy"]},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {"id": {"$ref": "#/$defs/id"}}
+    },
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["combine", "rules"],
+      "properties": {
+        "combine": {"const": "deny_overrides"},
+        "rules": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/rule"}}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]*$"},
+    "path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\).+$"},
+    "strings": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "envelope": {
+      "type": "object",
+      "required": ["id", "kind", "severity"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "kind": {"enum": ["change.paths", "change.protect", "dependency.forbid", "manifest.direct_dependencies", "check.require"]},
+        "severity": {"enum": ["error", "warning"]},
+        "remediation": {"type": "string", "minLength": 1}
+      }
+    },
+    "rule": {
+      "oneOf": [
+        {"allOf": [{"$ref": "#/$defs/envelope"}, {"type": "object", "additionalProperties": false, "required": ["id", "kind", "severity", "effect", "paths"], "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"const": "change.paths"}, "severity": {"enum": ["error", "warning"]}, "remediation": {"type": "string"}, "effect": {"enum": ["allow", "deny"]}, "paths": {"$ref": "#/$defs/strings"}}}]},
+        {"allOf": [{"$ref": "#/$defs/envelope"}, {"type": "object", "additionalProperties": false, "required": ["id", "kind", "severity", "paths"], "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"const": "change.protect"}, "severity": {"enum": ["error", "warning"]}, "remediation": {"type": "string"}, "paths": {"$ref": "#/$defs/strings"}}}]},
+        {"allOf": [{"$ref": "#/$defs/envelope"}, {"type": "object", "additionalProperties": false, "required": ["id", "kind", "severity", "relation", "source", "target"], "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"const": "dependency.forbid"}, "severity": {"enum": ["error", "warning"]}, "remediation": {"type": "string"}, "relation": {"$ref": "#/$defs/id"}, "source": {"$ref": "#/$defs/path"}, "target": {"$ref": "#/$defs/path"}}}]},
+        {"allOf": [{"$ref": "#/$defs/envelope"}, {"type": "object", "additionalProperties": false, "required": ["id", "kind", "severity", "manifest", "allow_add", "allow_remove"], "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"const": "manifest.direct_dependencies"}, "severity": {"enum": ["error", "warning"]}, "remediation": {"type": "string"}, "manifest": {"$ref": "#/$defs/path"}, "allow_add": {"$ref": "#/$defs/strings"}, "allow_remove": {"$ref": "#/$defs/strings"}}}]},
+        {"allOf": [{"$ref": "#/$defs/envelope"}, {"type": "object", "additionalProperties": false, "required": ["id", "kind", "severity", "checks"], "properties": {"id": {"$ref": "#/$defs/id"}, "kind": {"const": "check.require"}, "severity": {"enum": ["error", "warning"]}, "remediation": {"type": "string"}, "checks": {"$ref": "#/$defs/strings"}}}]}
+      ]
+    }
+  }
+}

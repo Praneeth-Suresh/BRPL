@@ -1,0 +1,33 @@
+schema: brpl-evidence/v2
+candidate_tree:
+  sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+git_changes:
+  - status: modified
+    path: src/api/service.py
+source_dependencies:
+  - relation: python_import
+    source: src/api/service.py
+    target: src/domain/model.py
+    line: 3
+manifest_delta:
+  - manifest: pyproject.toml
+    added:
+      - httpx
+    removed:
+      - legacy-client
+check_results:
+  - check: unit
+    status: pass
+    candidate_tree_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    tool_id: trusted.pytest
+    input_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  - check: lint
+    status: pass
+    candidate_tree_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    tool_id: trusted.ruff
+    input_sha256: cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+control_integrity:
+  control_hashes:
+    - target: policy
+      expected_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+      observed_sha256: dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
