@@ -107,8 +107,9 @@ outside the evaluated repository; missing, unreadable, deleted, repo-local, or
 wrong-kind inputs fail closed. Use `--format json` for stdout reports, or write
 `--json-report` to an external evaluator-owned path outside the repository.
 
-See [.beryl/brpl/README.md](./.beryl/brpl/README.md) for the v1 schema,
-examples, JSON reports, and trusted check registry format.
+See [.beryl/brpl/v2/README.md](./.beryl/brpl/v2/README.md) for the active v2
+schema, examples, typed evidence, JSON reports, and trusted check registry
+format.
 
 Detailed install flags, profiles, component examples, bootstrap controls, and
 hook troubleshooting live in [.beryl/scripts/README.md](./.beryl/scripts/README.md).
