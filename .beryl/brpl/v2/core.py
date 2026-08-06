@@ -362,7 +362,6 @@ def _validate_rule(value: Any, where: str) -> None:
         _repo_path(rule.get("manifest"), f"{where}.manifest")
         added = _string_list(rule.get("allow_add"), f"{where}.allow_add")
         removed = _string_list(rule.get("allow_remove"), f"{where}.allow_remove")
-        _require(added or removed, f"{where} must declare allow_add or allow_remove")
     elif kind == "check.require":
         checks = _nonempty_list(rule.get("checks"), f"{where}.checks")
         for index, check in enumerate(checks):
