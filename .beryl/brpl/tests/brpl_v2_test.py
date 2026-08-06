@@ -118,7 +118,14 @@ def _policy(*rules: dict[str, object]) -> dict[str, object]:
 
 
 def _rule(rule_id: str, kind: str, **payload: object) -> dict[str, object]:
-    return {"id": rule_id, "kind": kind, "severity": "error", **payload}
+    remediation = {
+        "change.paths": "remove_change",
+        "change.protect": "remove_change",
+        "dependency.forbid": "change_dependency",
+        "manifest.direct_dependencies": "change_dependency",
+        "check.require": "run_required_check",
+    }[kind]
+    return {"id": rule_id, "kind": kind, "severity": "error", "remediation": remediation, **payload}
 
 
 def _evidence() -> dict[str, object]:

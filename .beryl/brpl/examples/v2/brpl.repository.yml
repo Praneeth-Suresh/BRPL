@@ -3,7 +3,6 @@ kind: RepositoryPolicy
 metadata:
   id: repository-defaults-v2
 spec:
-  combine: deny_overrides
   rules:
     - id: PATH-001
       kind: change.paths
@@ -13,18 +12,21 @@ spec:
         - tests/**
         - pyproject.toml
       severity: error
+      remediation: remove_change
     - id: CTRL-001
       kind: change.protect
       paths:
         - .beryl/**
         - tests/regression/**
       severity: error
+      remediation: remove_change
     - id: ARCH-001
       kind: dependency.forbid
       relation: python_import
       source: src/api/**
       target: src/persistence/internal/**
       severity: error
+      remediation: change_dependency
     - id: DEP-001
       kind: manifest.direct_dependencies
       manifest: pyproject.toml
@@ -33,9 +35,11 @@ spec:
       allow_remove:
         - legacy-client
       severity: error
+      remediation: change_dependency
     - id: CHECK-001
       kind: check.require
       checks:
         - unit
         - lint
       severity: error
+      remediation: run_required_check

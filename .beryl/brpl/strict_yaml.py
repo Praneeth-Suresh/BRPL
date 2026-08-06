@@ -219,7 +219,11 @@ def _split_key_value(text: str) -> tuple[str, str] | None:
 
 
 def _parse_scalar(value: str, line_number: int) -> Any:
-    if value in {"[]", "{}", "|", ">"} or value.startswith(("[", "{")):
+    if value == "[]":
+        return []
+    if value == "{}":
+        return {}
+    if value in {"|", ">"} or value.startswith(("[", "{")):
         raise StrictYAMLError(f"unsupported YAML scalar at line {line_number}")
     if value.startswith(("!", "&", "*")):
         raise StrictYAMLError(f"tags, anchors, and aliases are not allowed at line {line_number}")
