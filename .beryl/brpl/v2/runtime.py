@@ -209,9 +209,12 @@ def _registry(path: Path) -> dict[str, dict[str, Any]]:
         if not isinstance(entry.get("command"), list) or not entry["command"] or not all(isinstance(item, str) and item for item in entry["command"]):
             raise BRPLConfigError(f"trusted check {entry.get('id')} needs an argv command")
         timeout = entry.get("timeout_seconds")
+        cwd = entry.get("cwd", "")
+        if not isinstance(cwd, str) or cwd.startswith("/") or "\\" in cwd or any(part in {"", ".", ".."} for part in cwd.split("/")):
+            raise BRPLConfigError(f"trusted check {entry.get('id')} has an unsafe cwd")
         if not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 < timeout <= MAX_CHECK_TIMEOUT_SECONDS:
             raise BRPLConfigError(f"trusted check {entry['id']} has an invalid timeout")
-        result[entry["id"]] = {"id": entry["id"], "command": entry["command"], "cwd": entry.get("cwd", ""), "timeout_seconds": timeout}
+        result[entry["id"]] = {"id": entry["id"], "command": entry["command"], "cwd": cwd, "timeout_seconds": timeout}
     return result
 
 
