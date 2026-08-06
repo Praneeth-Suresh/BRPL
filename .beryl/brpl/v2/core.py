@@ -34,6 +34,10 @@ _RULE_KINDS = {
 _SEVERITIES = {"error", "warning"}
 _CHANGE_STATUSES = {"added", "modified", "deleted", "renamed", "copied", "type_changed", "untracked"}
 _CHECK_STATUSES = {"pass", "fail", "error", "timeout", "missing"}
+REMEDIATION_CLASSES = frozenset({
+    "remove_change", "move_change", "change_dependency", "run_required_check",
+    "recheck_candidate", "restore_trusted_control", "preserve_gate_decision", "stop_and_report",
+})
 
 
 class BRPLV2Error(ValueError):
@@ -90,8 +94,7 @@ def validate_policy(data: Any, source: str = "<policy>") -> dict[str, Any]:
     _closed(metadata, {"id"}, f"{source}.metadata")
     _stable_id(metadata.get("id"), f"{source}.metadata.id")
     spec = _mapping(policy.get("spec"), f"{source}.spec")
-    _closed(spec, {"combine", "rules"}, f"{source}.spec")
-    _require(spec.get("combine") == "deny_overrides", f"{source}.spec.combine must be deny_overrides")
+    _closed(spec, {"rules"}, f"{source}.spec")
     rules = _nonempty_list(spec.get("rules"), f"{source}.spec.rules")
     for index, rule in enumerate(rules):
         _validate_rule(rule, f"{source}.spec.rules[{index}]")
@@ -345,8 +348,7 @@ def _validate_rule(value: Any, where: str) -> None:
     _closed(rule, common | payload, where)
     _stable_id(rule.get("id"), f"{where}.id")
     _require(rule.get("severity") in _SEVERITIES, f"{where}.severity must be error or warning")
-    if "remediation" in rule:
-        _string(rule["remediation"], f"{where}.remediation")
+    _require(rule.get("remediation") in REMEDIATION_CLASSES, f"{where}.remediation is invalid")
     if kind == "change.paths":
         _require(rule.get("effect") in {"allow", "deny"}, f"{where}.effect must be allow or deny")
         _pattern_list(rule.get("paths"), f"{where}.paths")
