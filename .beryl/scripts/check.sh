@@ -58,7 +58,7 @@ if [[ "${BERYL_SELF_TEST:-}" == "1" || -f "${BERYL_ROOT}/agent/adr/0008-add-brpl
     python_bin="python"
   fi
   BRPL_ENFORCEMENT=off PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" \
-    "${python_bin}" -m unittest discover "${BERYL_ROOT}/brpl/tests" -p '*_test.py'
+    "${python_bin}" -m unittest discover "${BERYL_ROOT}/brpl/tests" -p 'brpl_v2_test.py'
 fi
 "${BERYL_ROOT}/scripts/check-tests-unchanged.sh"
 "${BERYL_ROOT}/scripts/check-project.sh"

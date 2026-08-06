@@ -53,7 +53,9 @@ add_policy_arg() {
     exit 2
   fi
   policy_args+=(--policy "${path}")
-  policy_specs+=("${label}" "${path}" "${label}")
+  expected_kind="RepositoryPolicy"
+  if [[ "${label}" == "task" ]]; then expected_kind="TaskPolicy"; fi
+  policy_specs+=("${label}" "${path}" "${expected_kind}")
 }
 
 validate_policy_kind() {
@@ -64,7 +66,7 @@ validate_policy_kind() {
     "${python_bin}" -c '
 import sys
 from pathlib import Path
-from brpl import load_policy_file
+from brpl.v2 import load_policy_file
 
 label, path_text, expected_kind, repo_root_text, enforcement = sys.argv[1:]
 try:
@@ -166,7 +168,7 @@ fi
 printf "check-brpl: evaluating BRPL policies against %s\n" "${BRPL_BASE_REF}"
 
 PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" \
-  "${python_bin}" -m brpl \
+  "${python_bin}" -m brpl.v2 \
     --repo-root "${REPO_ROOT}" \
     --base "${BRPL_BASE_REF}" \
     "${policy_args[@]}" \

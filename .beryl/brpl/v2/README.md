@@ -1,8 +1,8 @@
-# BRPL v2 (Prospective)
+# BRPL v2
 
-BRPL v2 is a prospective, side-by-side implementation of the closed typed design
-in the research repository's `BRPLDesign.md`. It does not replace v1 and is not
-activated by `.beryl/scripts/check-brpl.sh`.
+BRPL v2 is the active implementation of the closed typed design in the research
+repository's `BRPLDesign.md`. Confirmatory use remains subject to the dated
+protocol amendment and validity gates.
 
 The public Python API is `brpl.v2`. It provides:
 
