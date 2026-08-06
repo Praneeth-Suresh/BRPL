@@ -60,7 +60,6 @@ def evaluate_policy_set(policies: list[dict[str, Any]], config: EvaluationConfig
         policies,
         evidence,
         lint_context=LintContext(
-            repository_paths=frozenset(_paths(root)),
             known_manifests=frozenset(item["manifest"] for item in manifests),
             known_checks=frozenset(item["check"] for item in checks),
         ),
