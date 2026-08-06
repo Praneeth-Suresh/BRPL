@@ -113,7 +113,7 @@ def _policy(*rules: dict[str, object]) -> dict[str, object]:
         "apiVersion": "beryl.dev/brpl/v2",
         "kind": "RepositoryPolicy",
         "metadata": {"id": "test-policy"},
-        "spec": {"combine": "deny_overrides", "rules": list(rules)},
+        "spec": {"rules": list(rules)},
     }
 
 
