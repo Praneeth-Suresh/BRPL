@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import tempfile
 import unittest
 from pathlib import Path
 
 from brpl.v3 import BRPLCompileError, canonical_json, compile_contracts, load_capabilities, parse_contract, validate_plan
+from brpl.v3.cli import main as cli_main
 from brpl.v3.runtime import evaluate_plan
 from brpl.v3.compiler import (
     MAX_CONTRACT_BYTES,
@@ -165,6 +167,22 @@ class BRPLV3CompilerTest(unittest.TestCase):
             parse_contract('brpl 3 repository "repo"\narea source paths ' + ('"x" ' * (MAX_TOKENS_PER_STATEMENT - 2)))
         with self.assertRaisesRegex(BRPLCompileError, "E112"):
             parse_contract('brpl 3 repository "repo"\nrepo "' + ("x" * (MAX_STRING_CHARACTERS + 1)) + '" root "."\n')
+
+    def test_cli_persists_structured_error_report(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"
+            root.mkdir()
+            report = Path(temporary) / "report.json"
+            code = cli_main([
+                "--repo-root", str(root), "--base", "HEAD",
+                "--policy", str(root / "missing.brpl"),
+                "--capabilities", str(root / "capabilities.json"),
+                "--json-report", str(report),
+            ])
+            self.assertEqual(code, 2)
+            value = json.loads(report.read_text(encoding="utf-8"))
+            self.assertEqual(value["outcome"], "blocked_evaluation_error")
+            self.assertFalse(value["ok"])
 
 
 def _capabilities() -> dict[str, object]:

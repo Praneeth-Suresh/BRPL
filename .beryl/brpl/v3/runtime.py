@@ -84,6 +84,20 @@ def evaluate_plan(plan: dict[str, Any], evidence: dict[str, Any]) -> dict[str, A
     return {"schema": REPORT_SCHEMA, "brpl_version": 3, "ok": not findings, "candidate_tree_sha256": evidence["candidate_tree"]["sha256"], "plan_sha256": plan["semantic_sha256"], "policy_ids": [item["id"] for item in plan["policies"]], "rules_evaluated": [item["id"] for item in plan["rules"]], "findings": findings, "violations": findings}
 
 
+def cli_error_report(message: str) -> str:
+    """Render a structured, fail-closed decision for CLI/configuration errors."""
+    report = {
+        "schema": REPORT_SCHEMA,
+        "brpl_version": 3,
+        "outcome": "blocked_evaluation_error",
+        "ok": False,
+        "findings": [],
+        "violations": [],
+        "errors": [{"severity": "error", "evidence": {"type": "error", "text": message}}],
+    }
+    return json.dumps(report, indent=2, sort_keys=True) + "\n"
+
+
 def _matches(pattern: str, path: str) -> bool:
     parts, values = pattern.split("/"), path.split("/")
     def match(index: int, position: int) -> bool:
