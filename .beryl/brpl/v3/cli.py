@@ -33,7 +33,11 @@ def main(argv: list[str] | None = None) -> int:
         legacy_manifests = [{"spec": {"rules": [{"kind": "manifest.direct_dependencies", "manifest": name} for name in manifests]}}]
         legacy_checks = [{"spec": {"rules": [{"kind": "check.require", "checks": checks}]}}]
         config = type("Config", (), {"check_results": None, "execute_checks": True, "check_registry_path": Path(args.check_registry).resolve(strict=True) if args.check_registry else None})()
-        evidence: dict[str, Any] = {"schema": "brpl-evidence/v3", "candidate_tree": {"sha256": candidate}, "git_changes": _changes(root, args.base), "source_dependencies": _dependencies(root), "manifest_delta": _manifest_deltas(root, args.base, legacy_manifests), "check_results": _checks(root, legacy_checks, config, candidate)}
+        edges = _dependencies(root)
+        for edge in edges:
+            if edge.get("relation") == "python_import":
+                edge["relation"] = "python-import"
+        evidence: dict[str, Any] = {"schema": "brpl-evidence/v3", "candidate_tree": {"sha256": candidate}, "git_changes": _changes(root, args.base), "source_dependencies": edges, "manifest_delta": _manifest_deltas(root, args.base, legacy_manifests), "check_results": _checks(root, legacy_checks, config, candidate)}
         report = evaluate_plan(plan, evidence)
         rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
         if args.json_report:
