@@ -10,11 +10,13 @@ The components are intentionally separate:
 - [authoring.md](authoring.md) is the short guide for an LLM or human author;
 - [compiler-design.md](compiler-design.md) defines the compiler boundary and
   canonical output; and
-- [compiler.py](compiler.py) is the dependency-free reference compiler.
+- [compiler.py](compiler.py) is the dependency-free reference compiler; and
+- [runtime.py](runtime.py) validates canonical plans and deterministically
+  evaluates trusted evidence.
 
 The [examples](../examples/v3) and focused tests in
 [`brpl_v3_test.py`](../tests/brpl_v3_test.py) are executable illustrations.
 
-BRPL v3 is not yet wired into Beryl's gate and is not authorized for
-confirmatory use. The existing verifier architecture is retained; v3 changes the
-source representation and compilation boundary.
+BRPL v3 remains prospective and is not authorized for confirmatory use until
+the protocol adoption gates pass. Its compiler and native verifier can now be
+exercised together in development validation.

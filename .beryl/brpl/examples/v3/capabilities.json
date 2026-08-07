@@ -1,27 +1,36 @@
 {
-  "schema": "brpl-capabilities/v1",
+  "schema": "brpl-capabilities/v2",
+  "changes": {"adapter": "git-changes", "sha256": "1111111111111111111111111111111111111111111111111111111111111111"},
   "relations": [
-    "source.import"
+    {"id": "source.import", "adapter": "typescript-imports", "sha256": "2222222222222222222222222222222222222222222222222222222222222222"}
   ],
   "manifests": [
-    "package.json"
+    {"id": "package.json", "adapter": "package-json", "sha256": "3333333333333333333333333333333333333333333333333333333333333333"}
   ],
   "checks": [
     {
       "id": "format",
-      "summary": "Repository formatting must pass"
+      "summary": "Repository formatting must pass",
+      "adapter": "trusted-check",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
     },
     {
       "id": "lint",
-      "summary": "Repository lint rules must pass"
+      "summary": "Repository lint rules must pass",
+      "adapter": "trusted-check",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
     },
     {
       "id": "security-no-secrets",
-      "summary": "No credential material may be committed"
+      "summary": "No credential material may be committed",
+      "adapter": "trusted-check",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
     },
     {
       "id": "test",
-      "summary": "The trusted test suite must pass"
+      "summary": "The trusted test suite must pass",
+      "adapter": "trusted-check",
+      "sha256": "4444444444444444444444444444444444444444444444444444444444444444"
     }
   ]
 }

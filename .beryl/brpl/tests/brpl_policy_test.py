@@ -22,6 +22,7 @@ from brpl.core import (
     validate_policy,
 )
 from brpl.strict_yaml import StrictYAMLError, load_strict_yaml
+from brpl.v2.runtime import _dependencies
 
 
 class BRPLPolicyTest(unittest.TestCase):
@@ -455,6 +456,20 @@ class BRPLPolicyTest(unittest.TestCase):
 
             self.assertFalse(report["ok"])
             self.assertIn("no-relative-infra", {violation["rule_id"] for violation in report["violations"]})
+
+    def test_architecture_resolves_absolute_imports_from_src_layout(self) -> None:
+        with repo_fixture() as repo:
+            write(repo / "src/fulfilment/domain/model.py", "from fulfilment.infrastructure import sqlite_store\n")
+            write(repo / "src/fulfilment/infrastructure/sqlite_store.py", "connection = object()\n")
+
+            self.assertIn(
+                {
+                    "relation": "python_import",
+                    "source": "src/fulfilment/domain/model.py",
+                    "target": "src/fulfilment/infrastructure/sqlite_store.py",
+                },
+                _dependencies(repo),
+            )
 
     def test_architecture_fails_closed_on_syntax_error_and_matched_symlink(self) -> None:
         with repo_fixture() as repo:

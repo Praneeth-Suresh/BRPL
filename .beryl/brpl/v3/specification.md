@@ -31,6 +31,9 @@ Source order has no effect on semantics.
 - `@name` refers to an `area` in the composed contract.
 - `none` represents an empty dependency allow-list.
 - Tabs outside strings are invalid.
+- A contract is limited to 64 KiB of UTF-8, 1,000 physical lines, 500
+  statements, 4,096 characters per line, 128 tokens per statement, and 2,048
+  decoded characters per string. Exceeding a limit is a compilation error.
 - Paths use normalized repository-relative POSIX syntax. `.` is permitted only
   as the repository root. Absolute paths, backslashes, NUL, empty segments,
   `.` or `..` segments, character classes, brace expansion, negation, and a
@@ -94,6 +97,7 @@ statement. A task overlay contains no `repo` statement.
 
 `repo NAME root "."` gives the agent a display name and fixes all selectors to
 the repository root. Version 3 supports only `root "."`.
+The repository name is non-empty.
 
 ### 4.2 Context
 
@@ -101,6 +105,11 @@ the repository root. Version 3 supports only `root "."`.
 communicates one relevant technology and may add a major version, configuration
 path, or concise role. These statements are validated and included in the
 canonical agent context, but the compiler does not assert their truth.
+
+Context values are non-empty. This includes the repository display name, every
+`about` value, a technology name, and supplied `major`, `from`, or `role`
+values. Check capability IDs and their public `means` summaries are also
+non-empty.
 
 Repeated context statements are permitted. Exact semantic duplicates are
 rejected. Context is canonically sorted.
@@ -179,9 +188,12 @@ rejects redefinitions; it does not implement `last rule wins` behavior.
 
 The compiler emits four evidence requirements: changed paths, graph edges,
 direct dependency deltas, and candidate-bound check results. A trusted
-capability registry maps relation names, manifests, and check IDs to pinned
-adapters. Policy files never supply adapter code, commands, filesystem paths to
-executables, environment variables, or network locations.
+`brpl-capabilities/v2` registry maps the change source and every relation,
+manifest, and check ID to an adapter identifier plus the adapter artifact's
+SHA-256. The compiler copies only bindings that a plan uses. Before evaluating,
+the verifier validates the closed `brpl-plan/v3` structure and recomputes its
+semantic SHA-256. Policy files never supply adapter code, commands, filesystem
+paths to executables, environment variables, or network locations.
 
 Language neutrality means BRPL syntax and predicate meanings do not change when
 the repository language changes. It does not mean one adapter observes every

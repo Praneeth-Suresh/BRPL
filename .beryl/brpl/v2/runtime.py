@@ -128,8 +128,17 @@ def _dependencies(root: Path) -> list[dict[str, Any]]:
             raise BRPLEvaluationError(f"Python source is a symlink: {path}")
         module = _module(path)
         modules.setdefault(module, set()).add(path)
+        # A conventional ``src/`` layout exposes packages beneath src at the
+        # import root (``from package import value``), not as ``src.package``.
+        # Preserve the repository-relative module too: projects which import
+        # through ``src`` remain observable, while absolute package imports now
+        # resolve to their source file deterministically.
+        if path.startswith("src/"):
+            modules.setdefault(_module(path[len("src/"):]), set()).add(path)
         if path.endswith("/__init__.py"):
             modules.setdefault(module + ".__init__", set()).add(path)
+            if path.startswith("src/"):
+                modules.setdefault(_module(path[len("src/"):]) + ".__init__", set()).add(path)
     edges: set[tuple[str, str, str]] = set()
     for path in paths:
         try:
@@ -150,7 +159,7 @@ def _dependencies(root: Path) -> list[dict[str, Any]]:
             for target in targets:
                 for resolved in _resolve(target, modules):
                     edges.add(("python_import", path, resolved))
-                targets.clear()
+            targets.clear()
     return [{"relation": relation, "source": source, "target": target} for relation, source, target in sorted(edges)]
 
 

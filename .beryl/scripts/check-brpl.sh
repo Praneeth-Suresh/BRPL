@@ -8,6 +8,7 @@ source "${SCRIPT_DIR}/paths.sh"
 policy_args=()
 policy_specs=()
 enforcement="auto"
+policy_version="${BRPL_POLICY_VERSION:-v2}"
 python_bin=""
 if [[ -n "${BRPL_ENFORCEMENT+x}" ]]; then
   enforcement="${BRPL_ENFORCEMENT}"
@@ -27,6 +28,11 @@ case "${enforcement}" in
     exit 2
     ;;
 esac
+
+if [[ "${policy_version}" != "v2" && "${policy_version}" != "v3" ]]; then
+  printf "ERROR: BRPL_POLICY_VERSION must be v2 or v3 when set\n" >&2
+  exit 2
+fi
 
 if [[ "${enforcement}" == "off" ]]; then
   printf "check-brpl: BRPL_ENFORCEMENT=off (skipping)\n"
@@ -62,6 +68,22 @@ validate_policy_kind() {
   local label="$1"
   local path="$2"
   local expected_kind="$3"
+  if [[ "${policy_version}" == "v3" ]]; then
+    PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" \
+      "${python_bin}" -c '
+import sys
+from pathlib import Path
+from brpl.v3 import parse_contract
+label, path_text, expected_kind = sys.argv[1:]
+try:
+    actual = parse_contract(Path(path_text).read_text(encoding="utf-8"), path_text).policy_kind
+except Exception as exc:
+    print(f"ERROR: {exc}", file=sys.stderr); raise SystemExit(2)
+if actual != expected_kind.lower().replace("policy", ""):
+    print(f"ERROR: configured {label} v3 policy has kind {actual!r}", file=sys.stderr); raise SystemExit(2)
+' "${label}" "${path}" "${expected_kind}"
+    return
+  fi
   PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" \
     "${python_bin}" -c '
 import sys
@@ -160,6 +182,19 @@ elif [[ -f "${BERYL_ROOT}/policy/check-registry.json" ]]; then
   registry_args+=(--check-registry "${BERYL_ROOT}/policy/check-registry.json")
 fi
 
+capability_args=()
+if [[ "${policy_version}" == "v3" ]]; then
+  if [[ -z "${BRPL_CAPABILITIES:-}" ]]; then
+    printf "ERROR: BRPL_POLICY_VERSION=v3 requires BRPL_CAPABILITIES\n" >&2
+    exit 2
+  fi
+  if [[ "${enforcement}" == "enforce" ]]; then
+    capability_args+=(--capabilities "$(resolve_external_file "capabilities" "${BRPL_CAPABILITIES}")")
+  else
+    capability_args+=(--capabilities "${BRPL_CAPABILITIES}")
+  fi
+fi
+
 json_args=()
 if [[ -n "${BRPL_JSON_REPORT:-}" ]]; then
   json_args+=(--json-report "${BRPL_JSON_REPORT}")
@@ -167,10 +202,13 @@ fi
 
 printf "check-brpl: evaluating BRPL policies against %s\n" "${BRPL_BASE_REF}"
 
+runtime_module="brpl.v2"
+if [[ "${policy_version}" == "v3" ]]; then runtime_module="brpl.v3.cli"; fi
 PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" \
-  "${python_bin}" -m brpl.v2 \
+  "${python_bin}" -m "${runtime_module}" \
     --repo-root "${REPO_ROOT}" \
     --base "${BRPL_BASE_REF}" \
     "${policy_args[@]}" \
     "${registry_args[@]}" \
+    "${capability_args[@]}" \
     "${json_args[@]}"

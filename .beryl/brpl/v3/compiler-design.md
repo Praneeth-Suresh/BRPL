@@ -36,26 +36,27 @@ The prototype accepts strict JSON shaped as follows:
 
 ```json
 {
-  "schema": "brpl-capabilities/v1",
-  "relations": ["source.import"],
-  "manifests": ["package.json"],
+  "schema": "brpl-capabilities/v2",
+  "changes": {"adapter": "git-changes", "sha256": "..."},
+  "relations": [{"id": "source.import", "adapter": "python-imports", "sha256": "..."}],
+  "manifests": [{"id": "pyproject.toml", "adapter": "pyproject-dependencies", "sha256": "..."}],
   "checks": [
-    {"id": "test", "summary": "The trusted test suite must pass"}
+    {"id": "test", "summary": "The trusted test suite must pass", "adapter": "trusted-check", "sha256": "..."}
   ]
 }
 ```
 
-This is a symbol table and public contract, not an executable adapter
-configuration. Production enforcement additionally binds each entry to a
-versioned implementation, evidence schema, coverage declaration, and hashes
-outside the policy and candidate worktree.
+Each capability is a public contract plus an immutable binding to a trusted
+adapter artifact. The adapter identifier and SHA-256 are data from the
+authoritative registry, never policy-supplied code or a command.
 
 ## Output and verifier boundary
 
-The compiler output includes a semantic SHA-256 over the canonical plan. A
-verifier must separately bind the plan, baseline, candidate tree, adapters,
-evidence, and results. The prototype compiler does not claim to complete that
-trusted runtime integration.
+The compiler output includes a semantic SHA-256 over the canonical plan. The
+verifier validates the plan before evaluation, retains `generated` as its own
+policy class, and evaluates every pair of expanded source/target selectors for
+an edge rule. Its structural schema is
+[`brpl-v3-plan.schema.json`](../schemas/brpl-v3-plan.schema.json).
 
 The reference implementation in [compiler.py](compiler.py) intentionally uses
 only the Python standard library. It is a prototype for inspecting the language

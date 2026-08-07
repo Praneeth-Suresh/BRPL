@@ -35,8 +35,15 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write(report_to_json(report) if args.format == "json" else report_to_human(report))
         return 0 if report["ok"] else 1
     except (BRPLConfigError, BRPLEvaluationError, ValueError) as exc:
+        # Evaluation errors are still gate decisions.  Persist the same
+        # machine-readable blocked-decision record that is written for an
+        # ordinary policy violation so callers never need to infer failure from
+        # an absent report file or parse stderr.
+        error_report = cli_error_report(str(exc))
+        if args.json_report and not Path(args.json_report).resolve(strict=False).is_relative_to(root):
+            Path(args.json_report).write_text(error_report, encoding="utf-8")
         if args.format == "json":
-            sys.stderr.write(cli_error_report(str(exc)))
+            sys.stderr.write(error_report)
         else:
             sys.stderr.write(f"BRPL v2 error: {exc}\n")
         return 2

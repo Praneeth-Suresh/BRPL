@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from brpl.v2 import (
     BRPLV2Error,
@@ -17,6 +19,7 @@ from brpl.v2 import (
     validate_evidence,
     validate_policy,
 )
+from brpl.v2.cli import main as cli_main
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,6 +109,35 @@ class BRPLV2Test(unittest.TestCase):
             second = hash_candidate_tree(root)
             self.assertNotEqual(first, second)
             self.assertRegex(second, r"^[0-9a-f]{64}$")
+
+    def test_cli_persists_a_structured_report_for_evaluation_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "repo"
+            root.mkdir()
+            report_path = Path(directory) / "brpl-report.json"
+            stderr = io.StringIO()
+            with patch("sys.stderr", stderr):
+                exit_code = cli_main(
+                    [
+                        "--repo-root",
+                        str(root),
+                        "--base",
+                        "HEAD",
+                        "--policy",
+                        str(root / "missing.yml"),
+                        "--json-report",
+                        str(report_path),
+                        "--format",
+                        "json",
+                    ]
+                )
+            self.assertEqual(exit_code, 2)
+            self.assertTrue(report_path.exists())
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertFalse(report["ok"])
+            self.assertEqual(report["outcome"], "blocked_evaluation_error")
+            self.assertEqual(report["errors"][0]["severity"], "error")
+            self.assertIn("cannot read", stderr.getvalue())
 
 
 def _policy(*rules: dict[str, object]) -> dict[str, object]:

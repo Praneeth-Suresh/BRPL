@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beryl.dev/schemas/brpl-v3-plan.schema.json",
+  "title": "BRPL v3 verifier plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "brpl_version", "policies", "repository", "context", "areas", "rules", "capabilities", "semantic_sha256"],
+  "properties": {
+    "schema": {"const": "brpl-plan/v3"},
+    "brpl_version": {"const": 3},
+    "policies": {"type": "array"},
+    "repository": {"type": "object"},
+    "context": {"type": "array"},
+    "areas": {"type": "array"},
+    "rules": {"type": "array"},
+    "capabilities": {"type": "array"},
+    "semantic_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}
