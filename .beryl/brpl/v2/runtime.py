@@ -210,7 +210,11 @@ def _registry(path: Path) -> dict[str, dict[str, Any]]:
             raise BRPLConfigError(f"trusted check {entry.get('id')} needs an argv command")
         timeout = entry.get("timeout_seconds")
         cwd = entry.get("cwd", "")
-        if not isinstance(cwd, str) or cwd.startswith("/") or "\\" in cwd or any(part in {"", ".", ".."} for part in cwd.split("/")):
+        # An omitted cwd means the evaluated repository root.  Non-empty cwd
+        # values must remain a normalized, relative descendant of that root.
+        if not isinstance(cwd, str) or cwd.startswith("/") or "\\" in cwd or (
+            cwd and any(part in {"", ".", ".."} for part in cwd.split("/"))
+        ):
             raise BRPLConfigError(f"trusted check {entry.get('id')} has an unsafe cwd")
         if not isinstance(timeout, int) or isinstance(timeout, bool) or not 0 < timeout <= MAX_CHECK_TIMEOUT_SECONDS:
             raise BRPLConfigError(f"trusted check {entry['id']} has an invalid timeout")

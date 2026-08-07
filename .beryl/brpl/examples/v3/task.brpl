@@ -1,0 +1,5 @@
+brpl 3 task "add-order-validation"
+
+about documentation "Implement the task without changing generated clients"
+changes TASK-001 only @domain @application @public-api @tests
+changes TASK-002 deny @generated

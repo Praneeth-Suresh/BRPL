@@ -1,0 +1,33 @@
+brpl 3 repository "acme-service"
+
+repo "Acme service" root "."
+about purpose "Processes customer orders"
+about architecture "Ports and adapters with domain code at the centre"
+about data-classification "Customer records are restricted"
+
+uses language "TypeScript" major "5"
+uses runtime "Node.js" major "22"
+uses framework "Fastify" major "5"
+uses dependency "PostgreSQL" role "primary data store"
+uses package-manager "pnpm"
+uses formatter "Prettier" from "prettier.config.js"
+uses linter "ESLint" from "eslint.config.js"
+uses test-framework "Vitest"
+uses security-tool "gitleaks" role "credential scanning"
+
+area domain paths "src/domain/**"
+area application paths "src/application/**"
+area adapters paths "src/adapters/**"
+area public-api paths "src/api/**"
+area tests paths "test/**" "src/**/*.test.ts"
+area controls paths "package.json" "pnpm-lock.yaml" ".github/workflows/**"
+area generated paths "src/generated/**"
+
+protect CTRL-001 paths @controls
+generated GEN-001 paths @generated
+forbid-edge ARCH-001 relation "source.import" from @domain to @adapters
+dependencies DEP-001 manifest "package.json" allow-add "zod" allow-remove none
+require STYLE-001 check "format" means "Repository formatting must pass"
+require LINT-001 check "lint" means "Repository lint rules must pass"
+require TEST-001 check "test" means "The trusted test suite must pass"
+require SEC-001 check "security-no-secrets" means "No credential material may be committed"

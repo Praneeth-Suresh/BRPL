@@ -1,0 +1,27 @@
+{
+  "schema": "brpl-capabilities/v1",
+  "relations": [
+    "source.import"
+  ],
+  "manifests": [
+    "package.json"
+  ],
+  "checks": [
+    {
+      "id": "format",
+      "summary": "Repository formatting must pass"
+    },
+    {
+      "id": "lint",
+      "summary": "Repository lint rules must pass"
+    },
+    {
+      "id": "security-no-secrets",
+      "summary": "No credential material may be committed"
+    },
+    {
+      "id": "test",
+      "summary": "The trusted test suite must pass"
+    }
+  ]
+}

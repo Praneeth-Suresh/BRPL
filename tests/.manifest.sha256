@@ -1,2 +1,4 @@
-a7c015ac7996cd718328b288b214477173e12f0aeef29d0f935191ef3bcf3686  .beryl/brpl/tests/brpl_policy_test.py
+a6f49d471b8ee57b15563b9bf08a86a8c7e98b35dcc6e3d25284f9efc5815602  .beryl/brpl/tests/brpl_policy_test.py
+3944b6e81303e4a40738a0e10348f2527c7643a67494bda6de8c22397136d307  .beryl/brpl/tests/brpl_v2_test.py
+dd98cb42039fe9b5af4da459a93c47cee46c265b5d098e1abdb1d184e15874c0  .beryl/brpl/tests/brpl_v3_test.py
 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b  tests/.gitkeep
