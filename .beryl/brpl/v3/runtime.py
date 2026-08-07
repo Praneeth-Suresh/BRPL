@@ -79,7 +79,16 @@ def evaluate_plan(plan: dict[str, Any], evidence: dict[str, Any]) -> dict[str, A
                 facts.append({"type": "check_result", "check": rule["check"], "status": result.get("status", "missing") if isinstance(result, dict) else "missing", "candidate_tree_sha256": result.get("candidate_tree_sha256") if isinstance(result, dict) else None})
         for fact in facts:
             digest = hashlib.sha256(canonical_json(fact).encode("utf-8")).hexdigest()
-            findings.append({"finding_id": f"{rule['id']}:{digest[:16]}", "rule_id": rule["id"], "policy_id": rule["policy_id"], "policy_class": rule["class"], "severity": rule["severity"], "evidence": fact, "evidence_sha256": digest, "remediation": rule["remediation"]})
+            policy_class = rule["class"]
+            family = {
+                "change": "change_scope",
+                "protect": "protected_paths",
+                "generated": "generated_paths",
+                "architecture": "architecture.forbid_imports",
+                "dependencies": "new_dependencies",
+                "required-check": "required_checks",
+            }[policy_class]
+            findings.append({"finding_id": f"{rule['id']}:{digest[:16]}", "rule_id": rule["id"], "policy_id": rule["policy_id"], "policy_class": policy_class, "family": family, "severity": rule["severity"], "evidence": fact, "evidence_sha256": digest, "remediation": rule["remediation"]})
     findings.sort(key=lambda item: (item["rule_id"], item["evidence_sha256"]))
     return {"schema": REPORT_SCHEMA, "brpl_version": 3, "ok": not findings, "candidate_tree_sha256": evidence["candidate_tree"]["sha256"], "plan_sha256": plan["semantic_sha256"], "policy_ids": [item["id"] for item in plan["policies"]], "rules_evaluated": [item["id"] for item in plan["rules"]], "findings": findings, "violations": findings}
 
