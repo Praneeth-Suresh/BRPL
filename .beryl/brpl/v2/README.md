@@ -1,8 +1,6 @@
 # BRPL v2
 
-BRPL v2 is the active implementation of the closed typed design in the research
-repository's `BRPLDesign.md`. Confirmatory use remains subject to the dated
-protocol amendment and validity gates.
+BRPL v2 is the active implementation of the closed typed design in the research repository's `BRPLDesign.md`. Confirmatory use remains subject to the dated protocol amendment and validity gates.
 
 The public Python API is `brpl.v2`. It provides:
 
@@ -14,14 +12,9 @@ The public Python API is `brpl.v2`. It provides:
 - control-hash, gate-bypass, and control-tampering evidence support; and
 - data-only policy test vectors with rule-coverage reporting.
 
-Policy evaluation never executes commands, follows policy-supplied filesystem
-paths, or loads extensions. Evidence extraction, check execution, registry
-resolution, immutable control storage, and runtime telemetry remain trusted harness
-responsibilities.
+Policy evaluation never executes commands, follows policy-supplied filesystem paths, or loads extensions. Evidence extraction, check execution, registry resolution, immutable control storage, and runtime telemetry remain trusted harness responsibilities.
 
-Schemas are descriptive review artifacts under `../schemas/`. Runtime validation
-is implemented directly so v2 has no third-party parser or JSON Schema dependency.
-Examples under `../examples/v2/` form a minimal policy/evidence/test-vector set.
+Schemas are descriptive review artifacts under `../schemas/`. Runtime validation is implemented directly so v2 has no third-party parser or JSON Schema dependency. Examples under `../examples/v2/` form a minimal policy/evidence/test-vector set.
 
 Run the focused tests from the Beryl repository root:
 

@@ -103,7 +103,6 @@ The idea of entropy is from *The Pragmatic Programmer*. Roughly, the idea is tha
 High software entropy is characterized by hugely complex code bases.
 
 > Complexity is anything related to the structure of a software system that makes it hard to understand and modify the system.
-> 
 
 ### Fix 1: Track "entropy hotspots”
 
@@ -155,7 +154,6 @@ Enforce **Interface-First Development**:
 ## Test Driven Development (TDD)
 
 > Good codebases are easy to test, which leads to better quality feedback loops.
-> 
 
 Large undirected generations are dangerous because they delay feedback. By the time the agent checks types, tests, or runtime behavior, it may have already spread bad assumptions across many files.
 
@@ -197,10 +195,9 @@ Prevent "moving the goal posts" during implementation by **locking the test suit
 
 Seams and adapters are the practical machinery that makes agentic code safe.
 
-Now, we need to understand what these concepts refer to. 
+Now, we need to understand what these concepts refer to.
 
 > a seam is a place where you can alter behavior in your program without editing in that place
-> 
 
 Essentially, a seam is a change point that lets you substitute behavior.
 

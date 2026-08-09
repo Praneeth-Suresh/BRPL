@@ -1,7 +1,7 @@
 # Quickstart: from installed Beryl to first safe task
 
 <p align="center">
-  <img src="./assets/beryl-logo.svg" alt="Beryl logo" width="180" />
+<img src="./assets/beryl-logo.svg" alt="Beryl logo" width="180" />
 </p>
 
 ## One goal
@@ -96,16 +96,15 @@ For a first run with driver usage, prefer:
    ```bash
    git config core.hooksPath .beryl/githooks
    ```
-   
-   Run this from a Git repo root, and ensure `.git/config` is writable. In restricted environments, failure modes include:
+
+Run this from a Git repo root, and ensure `.git/config` is writable. In restricted environments, failure modes include:
 
    - `fatal: not a git repository (or any of the parent directories): .git`
    - `fatal: could not lock config file .git/config: Permission denied`
 
 4. Run step 1 whenever you want a quick safety check before handing work to the agent.
 
-If bootstrap is not available, inspect
-`.beryl/agent/bootstrap-status.json` and rerun setup with a supported runner:
+If bootstrap is not available, inspect `.beryl/agent/bootstrap-status.json` and rerun setup with a supported runner:
 
 ```bash
 sh ./.beryl/scripts/setup-project.sh --bootstrap --agent-runner codex /path/to/project

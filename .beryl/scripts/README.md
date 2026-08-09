@@ -1,14 +1,10 @@
 # Beryl Scripts Reference
 
-This file is the detailed reference for install, setup, checks, component
-profiles, bootstrap controls, and optional hook setup.
+This file is the detailed reference for install, setup, checks, component profiles, bootstrap controls, and optional hook setup.
 
 ## Install Beryl
 
-`install.sh` is a POSIX shell installer. The installed control-plane scripts
-support the system Bash shipped with macOS and Git Bash or WSL on Windows.
-Native PowerShell is supported for downloading the installer only; run it from
-Git Bash or WSL after download.
+`install.sh` is a POSIX shell installer. The installed control-plane scripts support the system Bash shipped with macOS and Git Bash or WSL on Windows. Native PowerShell is supported for downloading the installer only; run it from Git Bash or WSL after download.
 
 Linux/macOS:
 
@@ -29,16 +25,11 @@ Invoke-WebRequest `
 bash -lc 'sh beryl-install.sh --ref "$BERYL_REF" --interactive'
 ```
 
-For repeatable installs, set `BERYL_REF` to a trusted tag or commit SHA instead
-of `main`. The interactive command asks which component set to install,
-including whether to include driver workflows, and whether a coding agent should
-help fill Beryl project context.
+For repeatable installs, set `BERYL_REF` to a trusted tag or commit SHA instead of `main`. The interactive command asks which component set to install, including whether to include driver workflows, and whether a coding agent should help fill Beryl project context.
 
-To inspect the downloaded file before running it, use `less beryl-install.sh` as
-an explicit optional review step.
+To inspect the downloaded file before running it, use `less beryl-install.sh` as an explicit optional review step.
 
-Convenience one-liner, only when you accept executing remote code without local
-inspection:
+Convenience one-liner, only when you accept executing remote code without local inspection:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Praneeth-Suresh/Beryl/main/install.sh | sh
@@ -80,17 +71,13 @@ sh beryl-install.sh --source-dir . --ref "$BERYL_REF" --dry-run --profile full
 sh beryl-install.sh --source-dir . --ref "$BERYL_REF" --dry-run --components driver
 ```
 
-Use `./.beryl/scripts/check-install-surface.sh` to verify those copied-path scopes
-against manifest definitions in an automated check.
+Use `./.beryl/scripts/check-install-surface.sh` to verify those copied-path scopes against manifest definitions in an automated check.
 
-Use `--profile full` or `--components driver` when you need task imports,
-`.beryl/driver/run.sh`, or issue-driven driver workflows. `minimal` and
-`standard` do not install `.beryl/driver/`.
+Use `--profile full` or `--components driver` when you need task imports, `.beryl/driver/run.sh`, or issue-driven driver workflows. `minimal` and `standard` do not install `.beryl/driver/`.
 
 ### Bootstrap Controls
 
-Bootstrap asks a headless coding agent to help fill target-owned Beryl project
-context after generic templates are installed.
+Bootstrap asks a headless coding agent to help fill target-owned Beryl project context after generic templates are installed.
 
 ```bash
 BERYL_REF=main
@@ -111,8 +98,7 @@ sh beryl-install.sh \
 
 Useful flags:
 
-- `--profile minimal|standard|full`: install a named profile. Default:
-  `standard`.
+- `--profile minimal|standard|full`: install a named profile. Default: `standard`.
 - `--components a,b`: install explicit components plus dependencies.
 - `--target DIR`: install into a target directory. Default: current directory.
 - `--interactive`: prompt for profile/components and agent bootstrap.
@@ -120,12 +106,9 @@ Useful flags:
 - `--agent-fallback on|off`: continue or fail when bootstrap cannot run.
 - `--agent-runner codex|claude|custom|off`: choose the bootstrap runner.
 - `--agent-command-template TPL`: command template for a custom runner.
-- `--expected-sha256 "$BERYL_ARCHIVE_SHA256"`: verify the downloaded archive
-  against a digest you obtained from a trusted release channel.
+- `--expected-sha256 "$BERYL_ARCHIVE_SHA256"`: verify the downloaded archive against a digest you obtained from a trusted release channel.
 
-When `--bootstrap-agent` is requested and no runner can be used, installs with
-`--agent-fallback off` exit non-zero and write failure details to
-`.beryl/agent/bootstrap-status.json`.
+When `--bootstrap-agent` is requested and no runner can be used, installs with `--agent-fallback off` exit non-zero and write failure details to `.beryl/agent/bootstrap-status.json`.
 
 ## Interactive Project Setup
 
@@ -135,8 +118,7 @@ For a new or existing project, run:
 ./.beryl/scripts/setup-project.sh /path/to/project
 ```
 
-If you omit the target directory, the script asks whether you are configuring an
-existing project or creating a new one, then asks for the target path.
+If you omit the target directory, the script asks whether you are configuring an existing project or creating a new one, then asks for the target path.
 
 The interactive setup asks which component set to install:
 
@@ -145,9 +127,7 @@ The interactive setup asks which component set to install:
 - full profile, explicitly including driver workflows
 - custom comma-separated components, for example `agent-core,checks,driver`
 
-It also asks whether a coding agent should help fill Beryl project context
-before components are installed. Passing `--profile`, `--components`, or
-`--bootstrap` keeps those noninteractive choices explicit.
+It also asks whether a coding agent should help fill Beryl project context before components are installed. Passing `--profile`, `--components`, or `--bootstrap` keeps those noninteractive choices explicit.
 
 Install and immediately bootstrap repo-specific agent context files:
 
@@ -166,13 +146,9 @@ Install with explicit bootstrap runner controls:
   /path/to/project
 ```
 
-The script copies the selected Beryl control-plane components, configures
-`.beryl/agent/affected-tests.conf`, syncs generated instruction shims, creates
-the initial test manifest, and can enable `.beryl/githooks/pre-commit`.
+The script copies the selected Beryl control-plane components, configures `.beryl/agent/affected-tests.conf`, syncs generated instruction shims, creates the initial test manifest, and can enable `.beryl/githooks/pre-commit`.
 
-When the listed stack or test-runner options are not enough, choose `Use AI
-agent fallback`. The script will ask for a project/setup prompt and run Codex,
-Claude, or a custom headless command from inside the target project.
+When the listed stack or test-runner options are not enough, choose `Use AI agent fallback`. The script will ask for a project/setup prompt and run Codex, Claude, or a custom headless command from inside the target project.
 
 ## Deterministic Checks
 
@@ -193,10 +169,7 @@ Single entrypoint:
 7. `check-brpl.sh` when BRPL policy evaluation is configured
 8. `check-project.sh` (project-specific extension point)
 
-Inactive installed repositories do not need Python for BRPL. Active BRPL policy
-evaluation requires Python 3.11 or newer. `BRPL_ENFORCEMENT=enforce` requires
-explicit external `BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and
-`BRPL_CHECK_REGISTRY` files and does not use repo-local fallbacks.
+Inactive installed repositories do not need Python for BRPL. Active BRPL policy evaluation requires Python 3.11 or newer. `BRPL_ENFORCEMENT=enforce` requires explicit external `BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and `BRPL_CHECK_REGISTRY` files and does not use repo-local fallbacks.
 
 `check-project.sh` delegates to the affected test gate:
 
@@ -257,14 +230,11 @@ Hook setup requires:
 
 - Running inside a Git repository, or after `git init`.
 - Permission to write `.git/config`.
-- The `githooks` component installed, normally through the `standard` or `full`
-  profile.
+- The `githooks` component installed, normally through the `standard` or `full` profile.
 
 Common failures:
 
 - `fatal: not a git repository`: run the command after `cd` into a repository.
-- `fatal: could not lock config file ...`: `.git/config` is read-only or locked
-  by filesystem permissions.
+- `fatal: could not lock config file ...`: `.git/config` is read-only or locked by filesystem permissions.
 
-When hook setup is blocked, keep the path install complete and rerun the hook
-command after fixing repository write access.
+When hook setup is blocked, keep the path install complete and rerun the hook command after fixing repository write access.

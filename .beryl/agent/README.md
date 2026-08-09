@@ -9,7 +9,7 @@ The system follows the core rule from `Plan.md`: generation speed is useful only
 ## Folder model
 
 <p align="center">
-  <img src="../../assets/beryl-agent-folder-map.png" alt="Beryl agent folder map: one repo-owned control plane for routing, policies, checks, decisions, generated shims, and review evidence" width="960" />
+<img src="../../assets/beryl-agent-folder-map.png" alt="Beryl agent folder map: one repo-owned control plane for routing, policies, checks, decisions, generated shims, and review evidence" width="960" />
 </p>
 
 The important move is ownership: the repository carries the contract, not a chat transcript and not one overloaded markdown file. Routing, policies, checks, architecture context, and decisions live together so each agent session can reload the same working agreement before it edits code.
@@ -61,9 +61,7 @@ Configure test immutability detection in `.beryl/agent/test-manifest.conf`.
 
 ## Adding skills
 
-Skills live in `.beryl/agent/skills/<skill-name>/SKILL.md`, so repo-specific
-skills stay with the repository instead of with any one coding agent. Ingest
-a skill from a local file, a local directory, or a raw https URL with:
+Skills live in `.beryl/agent/skills/<skill-name>/SKILL.md`, so repo-specific skills stay with the repository instead of with any one coding agent. Ingest a skill from a local file, a local directory, or a raw https URL with:
 
 ```bash
 ./.beryl/agent/scripts/add-skill.sh --list
@@ -71,9 +69,7 @@ a skill from a local file, a local directory, or a raw https URL with:
 ./.beryl/agent/scripts/add-skill.sh reviewing-migrations --from https://example.com/raw/SKILL.md --force
 ```
 
-The script validates the name and SKILL.md shape, then prints the
-registration steps (task-routing entry, optional tool-instruction-template
-mention, `sync-agent-env.sh` re-run).
+The script validates the name and SKILL.md shape, then prints the registration steps (task-routing entry, optional tool-instruction-template mention, `sync-agent-env.sh` re-run).
 
 ## Skill naming alias
 

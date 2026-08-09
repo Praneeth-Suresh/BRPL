@@ -2,13 +2,9 @@
 
 ## Core Identity
 
-Beryl is positioned as the **hard guarantee layer that makes repositories ready for agents**.
-The brand should feel intentional, precise, and operational: clean geometry, strong contrast,
-minimal ornamentation, and visible evidence of control.
+Beryl is positioned as the **hard guarantee layer that makes repositories ready for agents**. The brand should feel intentional, precise, and operational: clean geometry, strong contrast, minimal ornamentation, and visible evidence of control.
 
-The product is not "another skill pack." Beryl sits around the repository. It makes the
-repo declare its agent contract, routes work through explicit workflows, and backs claims
-with deterministic local gates.
+The product is not "another skill pack." Beryl sits around the repository. It makes the repo declare its agent contract, routes work through explicit workflows, and backs claims with deterministic local gates.
 
 ## Color Tokens
 
@@ -31,8 +27,7 @@ For documentation and website surfaces, pair:
 - Display/heading: a sans-serif with geometric traits (for example, `Inter`).
 - Body: a practical, readable sans-serif (for example, `Inter`, `Inter Tight`, or `IBM Plex Sans`).
 
-Type should feel like infrastructure documentation rather than AI marketing. Prefer direct
-headlines, short nouns, and concrete mechanisms over aspirational language.
+Type should feel like infrastructure documentation rather than AI marketing. Prefer direct headlines, short nouns, and concrete mechanisms over aspirational language.
 
 ## Logo Tokens and Variants
 

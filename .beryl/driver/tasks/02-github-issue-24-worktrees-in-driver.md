@@ -28,7 +28,6 @@
         conflicts with them.
 
         > I need an optional way to set up worktrees to parallelize work in driver for faster development. For this a DAG needs to be constructed for tasks. If there are parallel tasks then a worktree can be setup. For this, an optimisation script needs to be run before the driver starts working which gets an agent to construct a DAG and then this DAG is verified to see if we can build in parallel programming.
->
 > Lastly, can you make this optional so that the optimisation is only activiated when there is a flag that indicates that optimisation is needed.
 
         ## Requirements

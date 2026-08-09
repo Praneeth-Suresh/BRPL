@@ -1,22 +1,19 @@
 <p align="center">
-  <img src="assets/beryl-logo.svg" alt="Beryl faceted emerald logo mark" width="220" />
+<img src="assets/beryl-logo.svg" alt="Beryl faceted emerald logo mark" width="220" />
 </p>
 
 <h1 align="center">Beryl</h1>
 
 <p align="center">
-  <strong>Make Repositories Ready For Agents</strong>
+<strong>Make Repositories Ready For Agents</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/static/v1?label=repository&message=agent-ready&color=0f766e&labelColor=111827&style=flat-square" alt="Agent-ready repository" />
-  <img src="https://img.shields.io/static/v1?label=checks&message=deterministic&color=2563eb&labelColor=111827&style=flat-square" alt="Deterministic checks" />
-  <img src="https://img.shields.io/static/v1?label=review&message=human-owned&color=111827&labelColor=111827&style=flat-square" alt="Human-owned review" />
-  <img src="https://img.shields.io/static/v1?label=control%20plane&message=installable&color=b45309&labelColor=111827&style=flat-square" alt="Installable control plane" />
+<img src="https://img.shields.io/static/v1?label=repository&message=agent-ready&color=0f766e&labelColor=111827&style=flat-square" alt="Agent-ready repository" /> <img src="https://img.shields.io/static/v1?label=checks&message=deterministic&color=2563eb&labelColor=111827&style=flat-square" alt="Deterministic checks" /> <img src="https://img.shields.io/static/v1?label=review&message=human-owned&color=111827&labelColor=111827&style=flat-square" alt="Human-owned review" /> <img src="https://img.shields.io/static/v1?label=control%20plane&message=installable&color=b45309&labelColor=111827&style=flat-square" alt="Installable control plane" />
 </p>
 
 <p align="center">
-  <img src="assets/beryl-readme-hero.png" alt="Beryl launch slide: Hard guarantees for agent-ready repositories" width="960" />
+<img src="assets/beryl-readme-hero.png" alt="Beryl launch slide: Hard guarantees for agent-ready repositories" width="960" />
 </p>
 
 Beryl is a hard guarantee layer for AI-assisted development. It turns the agent workflow into files, checks, and review-ready boundaries before agent output is trusted.
@@ -37,8 +34,7 @@ Set up Beryl for this repository. Read and follow
 instructions. Run the prescribed checks and report the results.
 ```
 
-Recommended install: download and run the installer pinned to a ref you trust
-(a tag or commit SHA instead of the moving `main`):
+Recommended install: download and run the installer pinned to a ref you trust (a tag or commit SHA instead of the moving `main`):
 
 Linux/macOS:
 
@@ -49,8 +45,7 @@ curl --proto '=https' --tlsv1.2 -fsSL \
 sh beryl-install.sh --ref "$BERYL_REF" --interactive
 ```
 
-Windows: download in PowerShell, then run the installer from Git Bash or WSL
-(native PowerShell execution is not supported):
+Windows: download in PowerShell, then run the installer from Git Bash or WSL (native PowerShell execution is not supported):
 
 ```powershell
 $env:BERYL_REF = "main"
@@ -60,13 +55,9 @@ Invoke-WebRequest `
 bash -lc 'sh beryl-install.sh --ref "$BERYL_REF" --interactive'
 ```
 
-For repeatable installs, replace `main` with a trusted tag or commit SHA before
-running the command. The interactive command asks which component set to install,
-including whether to include driver workflows, and whether a coding agent should
-help fill Beryl project context.
+For repeatable installs, replace `main` with a trusted tag or commit SHA before running the command. The interactive command asks which component set to install, including whether to include driver workflows, and whether a coding agent should help fill Beryl project context.
 
-Convenience one-liner (executes remote code without inspection — only use it
-when you accept that trade-off):
+Convenience one-liner (executes remote code without inspection — only use it when you accept that trade-off):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Praneeth-Suresh/Beryl/main/install.sh | sh
@@ -93,26 +84,17 @@ Run the primary repo safety gate:
 ./.beryl/scripts/check.sh
 ```
 
-Use the optional BRPL policy gate by adding policy files under `.beryl/policy/`
-and running with an explicit baseline:
+Use the optional BRPL policy gate by adding policy files under `.beryl/policy/` and running with an explicit baseline:
 
 ```bash
 BRPL_BASE_REF=origin/main ./.beryl/scripts/check.sh
 ```
 
-Policy evaluation requires Python 3.11 or newer. For external evaluation, set
-`BRPL_ENFORCEMENT=enforce` with explicit evaluator-owned
-`BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and `BRPL_CHECK_REGISTRY` paths
-outside the evaluated repository; missing, unreadable, deleted, repo-local, or
-wrong-kind inputs fail closed. Use `--format json` for stdout reports, or write
-`--json-report` to an external evaluator-owned path outside the repository.
+Policy evaluation requires Python 3.11 or newer. For external evaluation, set `BRPL_ENFORCEMENT=enforce` with explicit evaluator-owned `BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and `BRPL_CHECK_REGISTRY` paths outside the evaluated repository; missing, unreadable, deleted, repo-local, or wrong-kind inputs fail closed. Use `--format json` for stdout reports, or write `--json-report` to an external evaluator-owned path outside the repository.
 
-See [.beryl/brpl/v2/README.md](./.beryl/brpl/v2/README.md) for the active v2
-schema, examples, typed evidence, JSON reports, and trusted check registry
-format.
+See [.beryl/brpl/v2/README.md](./.beryl/brpl/v2/README.md) for the active v2 schema, examples, typed evidence, JSON reports, and trusted check registry format.
 
-Detailed install flags, profiles, component examples, bootstrap controls, and
-hook troubleshooting live in [.beryl/scripts/README.md](./.beryl/scripts/README.md).
+Detailed install flags, profiles, component examples, bootstrap controls, and hook troubleshooting live in [.beryl/scripts/README.md](./.beryl/scripts/README.md).
 
 ## Documentation Map
 
@@ -165,7 +147,7 @@ Use this map before opening multiple files:
 Beryl starts as a practical safety layer for one repository, then scales without changing the operating model:
 
 <p align="center">
-  <img src="assets/beryl-value-ladder.png" alt="Beryl value ladder: start with one repo, then scale to an engineering team and company fleet" width="960" />
+<img src="assets/beryl-value-ladder.png" alt="Beryl value ladder: start with one repo, then scale to an engineering team and company fleet" width="960" />
 </p>
 
 ## Origin

@@ -1,15 +1,8 @@
 # Beryl bootstrap request
 
-Repository: {target_dir}
-Source ref: {source_ref}
-Installer version: {installer_version}
-Profile: {profile}
-Runner policy: {policy}
-Runner: {runner}
-Status file target: {status_file}
+Repository: {target_dir} Source ref: {source_ref} Installer version: {installer_version} Profile: {profile} Runner policy: {policy} Runner: {runner} Status file target: {status_file}
 
-Fill the following required files under `.beryl/agent/` so this repository has
-repo-specific context:
+Fill the following required files under `.beryl/agent/` so this repository has repo-specific context:
 
 {required_files}
 
@@ -18,8 +11,7 @@ Use this strict scope:
 - Do not create, modify, or remove files outside `.beryl/agent/*.md`.
 - Do not modify files outside this scope.
 
-For each required file, replace install template placeholders with concrete
-repository-specific details:
+For each required file, replace install template placeholders with concrete repository-specific details:
 - project-brief.md
 - architecture.md
 - design-tree.md

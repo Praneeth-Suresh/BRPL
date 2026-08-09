@@ -28,7 +28,6 @@
         conflicts with them.
 
         > Come up with a system to ensure that there is a good upkeep of ideas and materials in the repository.
->
 > Propose ideas for this as replies to this commit. Do not close this issue until a set of ideas to implement is chosen by Praneeth.
 
         ## Requirements

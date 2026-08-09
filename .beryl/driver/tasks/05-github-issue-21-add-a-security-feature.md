@@ -28,7 +28,6 @@
         conflicts with them.
 
         > Help developers code securely.
->
 > To resolve this issue brainstorm ways in which security can be build into agentic coding. How can we prevent the common attacks against agents and ensure the security of our code beyond the sandboxing the agent (which is already done by most coding agents now). Add the ideas in here as replies to this issue. Do not close the issue until a path to implement these features is approved by Praneeth.
 
         ## Requirements

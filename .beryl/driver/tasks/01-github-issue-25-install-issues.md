@@ -28,10 +28,7 @@
         conflicts with them.
 
         > There are the following issues with the installation workflow:
->
-> 1. When the installation script provided in the README is run, I get "-bash: syntax error near unexpected token `newline'"
-> 2. Ideally, the installation should allow users to choose which components of beryl they would want to install (for example do they install driver or not). Additionally, they should be asked whether the agent should help them set Beryl up for their existing project or new project.
-> 3. The README instructions for installations loose the point. All there needs to be there are the commands that need to be run on Windows and Linux/Mac. I don't need full instructions of all other scripts however the README should link to another script where this information is available. The README should only capture the 3 most important scripts, explaining what they do in a way that stands out to the reader.
+> 1. When the installation script provided in the README is run, I get "-bash: syntax error near unexpected token `newline'" 2. Ideally, the installation should allow users to choose which components of beryl they would want to install (for example do they install driver or not). Additionally, they should be asked whether the agent should help them set Beryl up for their existing project or new project. 3. The README instructions for installations loose the point. All there needs to be there are the commands that need to be run on Windows and Linux/Mac. I don't need full instructions of all other scripts however the README should link to another script where this information is available. The README should only capture the 3 most important scripts, explaining what they do in a way that stands out to the reader.
 
         ## Requirements
 
