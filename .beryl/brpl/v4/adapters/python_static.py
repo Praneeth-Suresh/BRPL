@@ -20,8 +20,8 @@ def collect(root: Path, base: str, check_results: list[dict[str, str]] | None = 
     root = root.resolve(strict=True)
     candidate = candidate_tree_hash(root)
     baseline = _git(root, ["rev-parse", f"{base}^{{commit}}"]).strip()
-    deltas = _manifest_delta(root, base, manifest, candidate)
-    return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": candidate}, "baseline": {"sha256": baseline}, "changes": _changes(root, base), "graphs": [{"relation": relation, "source_universe": "candidate-static-python-files", "target_universe": "candidate-static-python-files", "completeness": "complete", "adapter_binding": "brpl.v4.adapters.python-evidence-bundle.v1", "candidate_tree_sha256": candidate, "edges": _imports(root)}], "manifest_deltas": deltas, "checks": _checks(check_results or [], candidate), "metrics": []}
+    deltas = _manifest_delta(root, baseline, manifest, candidate)
+    return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": candidate}, "baseline": {"sha256": baseline}, "changes": _changes(root, baseline), "graphs": [{"relation": relation, "source_universe": "candidate-static-python-files", "target_universe": "candidate-static-python-files", "completeness": "complete", "adapter_binding": "brpl.v4.adapters.python-evidence-bundle.v1", "candidate_tree_sha256": candidate, "edges": _imports(root)}], "manifest_deltas": deltas, "checks": _checks(check_results or [], candidate), "metrics": []}
 
 
 def _changes(root: Path, base: str) -> list[dict[str, str]]:

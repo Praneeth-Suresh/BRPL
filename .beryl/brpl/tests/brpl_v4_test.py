@@ -247,6 +247,21 @@ class BRPLV4Test(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "required baseline"):
                 collect(root, "HEAD")
 
+    def test_bundle_uses_resolved_baseline_sha_after_symbolic_ref_resolution(self) -> None:
+        from brpl.v4.adapters.python_static import collect
+        baseline = "b" * 40; calls: list[list[str]] = []
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); (root / "pyproject.toml").write_text("[project]\ndependencies=[]\n", encoding="utf-8")
+            def fake_git(_root: Path, args: list[str]) -> str:
+                calls.append(args)
+                if args[0] == "rev-parse": return baseline + "\n"
+                if args[0] == "show": self.assertEqual(args[1], f"{baseline}:pyproject.toml"); return "[project]\ndependencies=[]\n"
+                return ""
+            with patch("brpl.v4.adapters.python_static._git", fake_git):
+                observed = collect(root, "moving-ref")
+            self.assertEqual(observed["baseline"]["sha256"], baseline)
+            self.assertTrue(all("moving-ref" not in " ".join(args) for args in calls[1:]))
+
     def test_v4_schemas_mirror_closed_policy_and_graph_evidence_keys(self) -> None:
         policy_schema = json.loads((ROOT / "schemas" / "brpl-v4-policy.schema.json").read_text(encoding="utf-8")); evidence_schema = json.loads((ROOT / "schemas" / "brpl-v4-evidence.schema.json").read_text(encoding="utf-8"))
         self.assertFalse(policy_schema["additionalProperties"]); self.assertIn("repository", policy_schema["properties"]); self.assertIn("threshold", policy_schema["properties"]["rules"]["items"]["properties"]["kind"]["enum"])
