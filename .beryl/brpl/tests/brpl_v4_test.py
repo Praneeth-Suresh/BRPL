@@ -272,6 +272,17 @@ class BRPLV4Test(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "required candidate pyproject"):
                 collect(root, "HEAD")
 
+    def test_fixed_check_envelope_requires_candidate_and_baseline_identity(self) -> None:
+        from brpl.v4.adapter_driver import _fixed_checks
+        from brpl.v4.tree import candidate_tree_hash
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repo"; root.mkdir(); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True); (root / "x").write_text("x", encoding="utf-8"); subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "base"], check=True)
+            baseline = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip(); envelope = Path(temporary) / "checks.json"; envelope.write_text(json.dumps({"schema": "brpl-fixed-check-results/v4", "candidate_tree": {"sha256": candidate_tree_hash(root)}, "baseline": {"sha256": baseline}, "checks": [{"check": "unit", "status": "pass"}]}), encoding="utf-8")
+            self.assertEqual(_fixed_checks(envelope, root, "HEAD"), [{"check": "unit", "status": "pass"}])
+            envelope.write_text(json.dumps({"schema": "brpl-fixed-check-results/v4", "candidate_tree": {"sha256": "0" * 64}, "baseline": {"sha256": baseline}, "checks": []}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "candidate identity"):
+                _fixed_checks(envelope, root, "HEAD")
+
     def test_v4_schemas_mirror_closed_policy_and_graph_evidence_keys(self) -> None:
         policy_schema = json.loads((ROOT / "schemas" / "brpl-v4-policy.schema.json").read_text(encoding="utf-8")); evidence_schema = json.loads((ROOT / "schemas" / "brpl-v4-evidence.schema.json").read_text(encoding="utf-8"))
         self.assertFalse(policy_schema["additionalProperties"]); self.assertIn("repository", policy_schema["properties"]); self.assertIn("threshold", policy_schema["properties"]["rules"]["items"]["properties"]["kind"]["enum"])
