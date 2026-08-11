@@ -36,17 +36,19 @@ def main(argv: list[str] | None = None) -> int:
             launch_path = Path(args.launch_manifest).resolve(strict=True)
             _external(root, *paths, catalog_path, evidence_path, launch_path)
             launch = _load_launch(launch_path)
-            _verify_launch(launch, catalog_path, paths)
+            _external(root, *(Path(item["path"]).resolve(strict=False) for item in launch["capabilities"]), *(Path(launch[key]["path"]).resolve(strict=False) for key in ("adapter_bundle", "checker", "baseline", "evaluator")))
             launch_before = _digest(launch_path)
         candidate_before = _tree_hash(root)
         plan = compile_policies([parse_policy(path) for path in paths], load_catalog(catalog_path))
+        if args.enforce:
+            _verify_launch(launch, catalog_path, paths, plan)
         evidence = validate_evidence(_json(evidence_path))
         if evidence["candidate_tree"]["sha256"] != candidate_before: raise ValueError("evidence is not bound to the candidate tree before evaluation")
         report = evaluate_plan(plan, evidence)
         if args.enforce:
             if _tree_hash(root) != candidate_before: raise ValueError("candidate tree changed during evaluation")
             if _digest(launch_path) != launch_before: raise ValueError("launch manifest changed during evaluation")
-            _verify_launch(launch, catalog_path, paths)
+            _verify_launch(launch, catalog_path, paths, plan)
         rendered = json.dumps(report, sort_keys=True, indent=2) + "\n"
         if args.json_report:
             report_path = Path(args.json_report).resolve(strict=False)
@@ -81,11 +83,14 @@ def _pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _load_launch(path: Path) -> dict[str, Any]:
     value = _json(path)
-    if set(value) != {"schema", "catalog", "policies", "adapter_bundle", "checker", "baseline", "evaluator"} or value["schema"] != LAUNCH_SCHEMA: raise ValueError("launch manifest has invalid schema or fields")
+    if set(value) != {"schema", "catalog", "policies", "capabilities", "adapter_bundle", "checker", "baseline", "evaluator"} or value["schema"] != LAUNCH_SCHEMA: raise ValueError("launch manifest has invalid schema or fields")
     for key in ("catalog", "adapter_bundle", "checker", "baseline", "evaluator"):
         _pinned(value[key], key)
     if not isinstance(value["policies"], list) or not value["policies"]: raise ValueError("launch manifest requires policies")
     for item in value["policies"]: _pinned(item, "policy")
+    if not isinstance(value["capabilities"], list): raise ValueError("launch manifest capabilities must be a list")
+    for item in value["capabilities"]: _pinned(item, "capability")
+    if len({item["id"] for item in value["capabilities"]}) != len(value["capabilities"]): raise ValueError("launch manifest capability ids must be unique")
     return value
 
 
@@ -94,7 +99,7 @@ def _pinned(value: Any, label: str) -> None:
     if len(value["sha256"]) != 64 or any(char not in "0123456789abcdef" for char in value["sha256"]): raise ValueError(f"launch {label} digest is invalid")
 
 
-def _verify_launch(launch: dict[str, Any], catalog: Path, policies: list[Path]) -> None:
+def _verify_launch(launch: dict[str, Any], catalog: Path, policies: list[Path], plan: dict[str, Any]) -> None:
     expected = {Path(launch["catalog"]["path"]).resolve(): launch["catalog"]["sha256"]}
     expected.update({Path(item["path"]).resolve(): item["sha256"] for item in launch["policies"]})
     if set(policies) != {path for path in expected if path != Path(launch["catalog"]["path"]).resolve()} or catalog != Path(launch["catalog"]["path"]).resolve(): raise ValueError("launch manifest does not pin selected policy/catalog paths")
@@ -105,6 +110,14 @@ def _verify_launch(launch: dict[str, Any], catalog: Path, policies: list[Path]) 
     for key in ("adapter_bundle", "checker", "baseline", "evaluator"):
         path = Path(launch[key]["path"]).resolve(strict=True)
         if _digest(path) != launch[key]["sha256"]: raise ValueError(f"launch-pinned {key} digest mismatch")
+    selected = {item["id"]: item for item in plan["capabilities"]}
+    pinned = {item["id"]: item for item in launch["capabilities"]}
+    if set(selected) != set(pinned): raise ValueError("launch manifest does not pin exactly the selected capabilities")
+    for capability_id, capability in selected.items():
+        item = pinned[capability_id]
+        actual = _digest(Path(item["path"]).resolve(strict=True))
+        if actual != item["sha256"]: raise ValueError(f"launch-pinned capability digest mismatch: {capability_id}")
+        if item["sha256"] != capability["digest"]: raise ValueError(f"launch capability does not match catalog digest: {capability_id}")
 
 
 def _external(root: Path, *paths: Path) -> None:

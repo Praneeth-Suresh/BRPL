@@ -20,7 +20,7 @@ Each rule has a stable uppercase `id`, a `kind`, and optional enforcement severi
 
 An adapter catalog has schema `brpl-adapter-catalog/v4` and only contains declarative bindings with identifiers, digests, and public summaries; relation bindings additionally declare the relation, source universe, target universe, and `complete` or `partial` catalog coverage. Catalog digests must be calculated from reviewed adapter artifacts by the external launch authority, never copied from illustrative placeholders.
 
-Graph evidence has schema `brpl-evidence/v4` and each graph declares its relation, source universe, target universe, completeness status, adapter binding, candidate-tree SHA-256, and finite edge list; graph rules fail closed if a matching graph is absent, partial, indeterminate, mismatched, or not bound to the candidate tree.
+Graph evidence has schema `brpl-evidence/v4` and each graph declares its relation, source universe, target universe, completeness status, adapter binding, candidate-tree SHA-256, and finite edge list; graph rules fail closed if a matching graph is absent, partial, indeterminate, mismatched, or not bound to the candidate tree. A complete result means complete only for its declared adapter universe, not for dynamic language behavior outside that universe.
 
 Every dependency rule requires exactly one candidate-bound manifest-delta observation with `completeness` `complete`; absent, duplicate, partial, or indeterminate observations are evaluation errors rather than evidence of compliance.
 

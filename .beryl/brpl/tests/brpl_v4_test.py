@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -113,7 +114,7 @@ class BRPLV4Test(unittest.TestCase):
             evidence_path.write_text(json.dumps({**evidence(), "candidate_tree": {"sha256": tree}}), encoding="utf-8")
             launch_path = outer / "launch.json"
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch = {"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "adapter_bundle": pin("adapter", adapter), "checker": pin("checker", checker), "baseline": pin("baseline", baseline), "evaluator": pin("evaluator", evaluator)}
+            launch = {"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", adapter), "checker": pin("checker", checker), "baseline": pin("baseline", baseline), "evaluator": pin("evaluator", evaluator)}
             launch_path.write_text(json.dumps(launch), encoding="utf-8")
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 0)
             launch["checker"]["sha256"] = "0" * 64; launch_path.write_text(json.dumps(launch), encoding="utf-8")
@@ -129,7 +130,7 @@ class BRPLV4Test(unittest.TestCase):
             for name in ("adapter", "checker", "baseline", "evaluator"):
                 path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
             from brpl.v4 import cli
             original = cli.evaluate_plan
             def mutate(plan: dict[str, object], observed: dict[str, object]) -> dict[str, object]:
@@ -148,7 +149,7 @@ class BRPLV4Test(unittest.TestCase):
             for name in ("adapter", "checker", "baseline", "evaluator"):
                 path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path), "--json-report", str(report_path)]), 2)
             self.assertEqual(json.loads(report_path.read_text(encoding="utf-8"))["outcome"], "blocked_evaluation_error")
 
@@ -158,15 +159,45 @@ class BRPLV4Test(unittest.TestCase):
         self.assertEqual((absent["rules"][0]["status"], absent["errors"][0]["evidence"]["code"]), ("indeterminate", "V419"))
         incomplete = evaluate_plan(plan, {**evidence(), "manifest_deltas": [{"manifest": "manifest", "added": [], "removed": [], "completeness": "indeterminate", "candidate_tree_sha256": HASH}]})
         self.assertEqual((incomplete["rules"][0]["status"], incomplete["errors"][0]["evidence"]["code"]), ("indeterminate", "V420"))
+        duplicate = evaluate_plan(plan, {**evidence(), "manifest_deltas": [{"manifest": "manifest", "added": [], "removed": [], "completeness": "complete", "candidate_tree_sha256": HASH}, {"manifest": "manifest", "added": [], "removed": [], "completeness": "complete", "candidate_tree_sha256": HASH}]})
+        self.assertEqual((duplicate["rules"][0]["status"], duplicate["errors"][0]["evidence"]["code"]), ("indeterminate", "V419"))
+
+    def test_enforce_mode_requires_capability_artifact_to_match_catalog_digest(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            outer = Path(temporary); root = outer / "candidate"; root.mkdir(); (root / "app.txt").write_text("candidate", encoding="utf-8")
+            policy_value = policy([{"id": "EDGE-001", "kind": "forbid-edge", "relation": "imports", "from": "@app", "to": "@db"}]); catalog_value = catalog(); trusted = ROOT / "v4" / "adapters" / "python_static.py"
+            relation = next(item for item in catalog_value["adapters"] if item["id"] == "imports"); relation["digest"] = hashlib.sha256(trusted.read_bytes()).hexdigest(); relation["binding"] = "brpl.v4.adapters.python-static.v1"
+            policy_path = outer / "policy.json"; catalog_path = outer / "catalog.json"; evidence_path = outer / "evidence.json"; launch_path = outer / "launch.json"; mismatched = outer / "different-adapter"; mismatched.write_text("not the trusted artifact", encoding="utf-8")
+            policy_path.write_text(json.dumps(policy_value), encoding="utf-8"); catalog_path.write_text(json.dumps(catalog_value), encoding="utf-8")
+            tree = __import__("brpl.v4.cli", fromlist=["_tree_hash"])._tree_hash(root); evidence_path.write_text(json.dumps({**evidence([ {**graph([]), "adapter_binding": "brpl.v4.adapters.python-static.v1"} ]), "candidate_tree": {"sha256": tree}}), encoding="utf-8")
+            authorities = []
+            for name in ("adapter-bundle", "checker", "baseline", "evaluator"):
+                path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
+            pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [pin("imports", mismatched)], "adapter_bundle": pin("adapter-bundle", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 2)
 
     def test_python_adapter_is_a_separate_pinned_artifact(self) -> None:
         from brpl.v4.adapters import adapter_artifact_digest
         artifact = ROOT / "v4" / "adapters" / "python_static.py"
-        self.assertEqual(adapter_artifact_digest("python-static"), hashlib.sha256(artifact.read_bytes()).hexdigest())
+        self.assertEqual(adapter_artifact_digest("python-evidence-bundle"), hashlib.sha256(artifact.read_bytes()).hexdigest())
         core = (ROOT / "v4" / "compiler.py").read_text(encoding="utf-8") + (ROOT / "v4" / "runtime.py").read_text(encoding="utf-8")
         self.assertNotIn("brpl.v4.adapters", core)
         self.assertNotIn("from ..v2", core)
         self.assertNotIn("import ast", core)
+
+    def test_python_evidence_bundle_normalizes_changes_graph_manifest_and_fixed_checks(self) -> None:
+        from brpl.v4.adapters.python_static import collect
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True)
+            (root / "a.py").write_text("import b\n", encoding="utf-8"); (root / "b.py").write_text("VALUE = 1\n", encoding="utf-8"); (root / "pyproject.toml").write_text("[project]\ndependencies = ['one>=1']\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
+            (root / "pyproject.toml").write_text("[project]\ndependencies = ['one>=1', 'two>=2']\n", encoding="utf-8")
+            observed = collect(root, "HEAD", [{"check": "unit", "status": "pass"}])
+            self.assertEqual(observed["graphs"][0]["completeness"], "complete")
+            self.assertIn({"source": "a.py", "target": "b.py"}, observed["graphs"][0]["edges"])
+            self.assertEqual(observed["manifest_deltas"][0]["added"], ["two>=2"])
+            self.assertEqual(observed["checks"][0]["candidate_tree_sha256"], observed["candidate_tree"]["sha256"])
 
 
 if __name__ == "__main__": unittest.main()

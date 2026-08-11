@@ -9,15 +9,16 @@ from pathlib import Path
 from typing import Any
 
 
-def collect(root: Path, base: str, relation: str = "source-import", manifest: str = "pyproject-toml") -> dict[str, Any]:
+def collect(root: Path, base: str, check_results: list[dict[str, str]] | None = None, relation: str = "source-import", manifest: str = "pyproject-toml") -> dict[str, Any]:
     """Produce normalized evidence without being imported by the v4 compiler/verifier.
 
-    Static Python imports are honestly labelled partial because dynamic imports,
-    generated sources, and runtime module resolution are outside this adapter.
+    Dynamic imports, generated sources, and runtime module resolution are outside
+    the declared static-Python universe; within that universe, syntax errors
+    fail extraction rather than being silently treated as complete coverage.
     """
     root = root.resolve(strict=True)
     candidate = _tree_hash(root)
-    return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": candidate}, "changes": _changes(root, base), "graphs": [{"relation": relation, "source_universe": "candidate-python-files", "target_universe": "candidate-python-files", "completeness": "partial", "adapter_binding": "brpl.v4.adapters.python-static.v1", "candidate_tree_sha256": candidate, "edges": _imports(root)}], "manifest_deltas": [_manifest_delta(root, base, manifest, candidate)], "checks": [], "metrics": []}
+    return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": candidate}, "changes": _changes(root, base), "graphs": [{"relation": relation, "source_universe": "candidate-static-python-files", "target_universe": "candidate-static-python-files", "completeness": "complete", "adapter_binding": "brpl.v4.adapters.python-evidence-bundle.v1", "candidate_tree_sha256": candidate, "edges": _imports(root)}], "manifest_deltas": [_manifest_delta(root, base, manifest, candidate)], "checks": _checks(check_results or [], candidate), "metrics": []}
 
 
 def _changes(root: Path, base: str) -> list[dict[str, str]]:
@@ -31,16 +32,28 @@ def _changes(root: Path, base: str) -> list[dict[str, str]]:
 
 
 def _imports(root: Path) -> list[dict[str, str]]:
+    files = [path for path in sorted(root.rglob("*.py")) if ".git" not in path.parts]
+    modules: dict[str, str] = {}
+    for path in files:
+        relative = path.relative_to(root).with_suffix("")
+        names = relative.parts[:-1] if relative.name == "__init__" else relative.parts
+        for index in range(len(names)):
+            module = ".".join(names[index:])
+            if module in modules and modules[module] != path.relative_to(root).as_posix(): modules[module] = ""
+            else: modules[module] = path.relative_to(root).as_posix()
     edges: list[dict[str, str]] = []
-    for source in sorted(root.rglob("*.py")):
-        if ".git" in source.parts: continue
+    for source in files:
         relative = source.relative_to(root).as_posix()
         try: tree = ast.parse(source.read_text(encoding="utf-8"), filename=relative)
-        except (OSError, SyntaxError, UnicodeDecodeError): continue
+        except (OSError, SyntaxError, UnicodeDecodeError) as exc: raise RuntimeError(f"cannot parse static Python source {relative}: {exc}") from exc
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
-                for name in node.names: edges.append({"source": relative, "target": name.name})
-            elif isinstance(node, ast.ImportFrom) and node.module: edges.append({"source": relative, "target": node.module})
+                for name in node.names:
+                    target = modules.get(name.name)
+                    if target: edges.append({"source": relative, "target": target})
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                target = modules.get(node.module)
+                if target: edges.append({"source": relative, "target": target})
     return sorted(edges, key=lambda item: (item["source"], item["target"]))
 
 
@@ -55,6 +68,15 @@ def _dependencies(payload: bytes) -> set[str]:
     try: project = tomllib.loads(payload.decode("utf-8")).get("project", {})
     except (UnicodeDecodeError, tomllib.TOMLDecodeError): return set()
     return {value.split(";", 1)[0].split("[", 1)[0].split(" ", 1)[0].lower() for value in project.get("dependencies", []) if isinstance(value, str)}
+
+
+def _checks(results: list[dict[str, str]], candidate: str) -> list[dict[str, str]]:
+    seen: set[str] = set(); normalized: list[dict[str, str]] = []
+    for result in results:
+        if not isinstance(result, dict) or set(result) != {"check", "status"} or not isinstance(result["check"], str) or not result["check"] or result.get("status") not in {"pass", "fail", "error"} or result["check"] in seen:
+            raise ValueError("fixed check results must contain unique check/status pass|fail|error records")
+        seen.add(result["check"]); normalized.append({"check": result["check"], "status": result["status"], "candidate_tree_sha256": candidate})
+    return sorted(normalized, key=lambda item: item["check"])
 
 
 def _git(root: Path, args: list[str]) -> str:
