@@ -25,6 +25,7 @@ Beryl is a relocatable hard guarantee layer for agent-ready repositories: canoni
 | Repository upkeep | Use `RepositoryUpkeep.md` as the tracked guide for idea intake, scratch promotion, maintenance cadence, and upkeep verification instead of relying on ignored `current.md` or hidden chat history. | 2026-07-13 | N/A |
 | Supported shell hosts | Support macOS system Bash and Windows Git Bash or WSL for installed scripts; keep native PowerShell limited to downloading the POSIX installer. Verify the supported hosts in GitHub Actions. | 2026-07-15 | N/A |
 | BRPL policy gate | Add machine-readable repository policies under `.beryl/brpl/` with strict data-only YAML, explicit stable rule ids, conjunctive repository/task overlays, segment-aware path globs, final-tree import/dependency analysis, stable reports, explicit Git baseline evaluation, trusted required-check adapters outside policy files, default-inactive installs, and evaluator-controlled fail-closed enforcement from external policy paths. | 2026-07-26 | `.beryl/agent/adr/0008-add-brpl-policy-gate.md` |
+| BRPL v4 host-neutral verification core | Keep v1–v3 and default v2 behavior intact, while adding explicit-only v4 strict JSON source, finite graph and threshold rules, normalized adapter evidence, and launch-manifest integrity binding. | 2026-08-11 | `.beryl/agent/adr/0009-brpl-v4-host-neutral-verifier.md` |
 
 ## Pressure Points
 
