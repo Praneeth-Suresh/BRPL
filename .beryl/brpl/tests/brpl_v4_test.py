@@ -262,6 +262,16 @@ class BRPLV4Test(unittest.TestCase):
             self.assertEqual(observed["baseline"]["sha256"], baseline)
             self.assertTrue(all("moving-ref" not in " ".join(args) for args in calls[1:]))
 
+    def test_bundle_rejects_symlinked_python_and_manifest_without_reading_target(self) -> None:
+        from brpl.v4.adapters.python_static import _imports, collect
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "candidate"; root.mkdir(); outside = Path(temporary) / "outside.py"; outside.write_text("raise RuntimeError('external read')\n", encoding="utf-8"); (root / "linked.py").symlink_to(outside)
+            with self.assertRaisesRegex(RuntimeError, "must not be a symlink"):
+                _imports(root)
+            subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True); (root / "pyproject.toml").symlink_to(outside); subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
+            with self.assertRaisesRegex(RuntimeError, "required candidate pyproject"):
+                collect(root, "HEAD")
+
     def test_v4_schemas_mirror_closed_policy_and_graph_evidence_keys(self) -> None:
         policy_schema = json.loads((ROOT / "schemas" / "brpl-v4-policy.schema.json").read_text(encoding="utf-8")); evidence_schema = json.loads((ROOT / "schemas" / "brpl-v4-evidence.schema.json").read_text(encoding="utf-8"))
         self.assertFalse(policy_schema["additionalProperties"]); self.assertIn("repository", policy_schema["properties"]); self.assertIn("threshold", policy_schema["properties"]["rules"]["items"]["properties"]["kind"]["enum"])

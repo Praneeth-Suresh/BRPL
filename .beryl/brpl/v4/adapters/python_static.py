@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import stat
 import subprocess
 import tomllib
 from pathlib import Path
@@ -52,7 +53,13 @@ def _changes(root: Path, base: str) -> list[dict[str, str]]:
 
 
 def _imports(root: Path) -> list[dict[str, str]]:
-    files = [path for path in sorted(root.rglob("*.py")) if ".git" not in path.parts]
+    files = []
+    for path in sorted(root.rglob("*.py")):
+        if ".git" in path.parts: continue
+        info = path.lstat()
+        if stat.S_ISLNK(info.st_mode): raise RuntimeError(f"candidate Python source must not be a symlink: {path.relative_to(root).as_posix()}")
+        if not stat.S_ISREG(info.st_mode): raise RuntimeError(f"candidate Python source must be regular: {path.relative_to(root).as_posix()}")
+        files.append(path)
     modules: dict[str, str] = {}
     for path in files:
         relative = path.relative_to(root).with_suffix("")
@@ -110,7 +117,8 @@ def _from_targets(node: ast.ImportFrom, source: Path, modules: dict[str, str]) -
 
 def _manifest_delta(root: Path, base: str, manifest: str, candidate: str) -> list[dict[str, Any]]:
     candidate_path = root / "pyproject.toml"
-    if not candidate_path.is_file():
+    info = candidate_path.lstat() if candidate_path.exists() or candidate_path.is_symlink() else None
+    if info is None or not stat.S_ISREG(info.st_mode):
         raise RuntimeError("required candidate pyproject.toml is missing")
     current = _dependencies(candidate_path.read_bytes(), "candidate pyproject.toml")
     try: previous = _dependencies(_git(root, ["show", f"{base}:pyproject.toml"]).encode(), "baseline pyproject.toml")
