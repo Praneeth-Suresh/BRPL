@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"brpl-v4-policy.schema.json","type":"object","required":["schema","kind","id","rules"],"properties":{"schema":{"const":"brpl-policy/v4"},"kind":{"enum":["repository","task"]},"id":{"type":"string"},"rules":{"type":"array"}},"additionalProperties":false}
