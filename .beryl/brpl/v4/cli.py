@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
 
 from .compiler import compile_policies, load_catalog, parse_policy
 from .runtime import BRPLVerificationError, cli_error_report, evaluate_plan, validate_evidence
+from .tree import candidate_tree_hash
+
+# Compatibility-only name for test and evaluator callers; both boundaries use
+# the same implementation in tree.py.
+_tree_hash = candidate_tree_hash
 
 LAUNCH_SCHEMA = "brpl-launch-manifest/v4"
 
@@ -38,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
             launch = _load_launch(launch_path)
             _external(root, *(Path(item["path"]).resolve(strict=False) for item in launch["capabilities"]), *(Path(launch[key]["path"]).resolve(strict=False) for key in ("adapter_bundle", "checker", "baseline", "evaluator")))
             launch_before = _digest(launch_path)
-        candidate_before = _tree_hash(root)
+        candidate_before = candidate_tree_hash(root)
         plan = compile_policies([parse_policy(path) for path in paths], load_catalog(catalog_path))
         if args.enforce:
             _verify_launch(launch, catalog_path, paths, plan)
@@ -46,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         if evidence["candidate_tree"]["sha256"] != candidate_before: raise ValueError("evidence is not bound to the candidate tree before evaluation")
         report = evaluate_plan(plan, evidence)
         if args.enforce:
-            if _tree_hash(root) != candidate_before: raise ValueError("candidate tree changed during evaluation")
+            if candidate_tree_hash(root) != candidate_before: raise ValueError("candidate tree changed during evaluation")
             if _digest(launch_path) != launch_before: raise ValueError("launch manifest changed during evaluation")
             _verify_launch(launch, catalog_path, paths, plan)
         rendered = json.dumps(report, sort_keys=True, indent=2) + "\n"
@@ -125,14 +128,9 @@ def _external(root: Path, *paths: Path) -> None:
         if path.is_relative_to(root): raise ValueError(f"authoritative path must be outside candidate worktree: {path}")
 
 
-def _digest(path: Path) -> str: return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _tree_hash(root: Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file() and ".git" not in item.parts):
-        relative = path.relative_to(root).as_posix().encode(); digest.update(len(relative).to_bytes(8, "big")); digest.update(relative); content = path.read_bytes(); digest.update(len(content).to_bytes(8, "big")); digest.update(content)
-    return digest.hexdigest()
+def _digest(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 if __name__ == "__main__": raise SystemExit(main())

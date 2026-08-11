@@ -209,5 +209,37 @@ class BRPLV4Test(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "cannot resolve local relative import"):
                 _imports(root)
 
+    def test_tree_hash_covers_untracked_mode_and_symlink_without_following(self) -> None:
+        from brpl.v4.tree import candidate_tree_hash
+        from brpl.v4.cli import _tree_hash
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); file = root / "tracked"; file.write_text("same", encoding="utf-8"); first = candidate_tree_hash(root)
+            file.chmod(0o755); self.assertNotEqual(first, candidate_tree_hash(root)); (root / "untracked").write_text("new", encoding="utf-8"); second = candidate_tree_hash(root)
+            (root / "link").symlink_to("/outside/does-not-need-to-exist"); self.assertNotEqual(second, candidate_tree_hash(root)); self.assertEqual(candidate_tree_hash(root), _tree_hash(root))
+
+    def test_changes_include_untracked_rename_delete_mode_and_symlink(self) -> None:
+        from brpl.v4.adapters.python_static import _changes
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True)
+            (root / "old").write_text("old", encoding="utf-8"); (root / "delete").write_text("delete", encoding="utf-8"); (root / "mode").write_text("mode", encoding="utf-8"); (root / "link").symlink_to("old")
+            subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
+            (root / "old").rename(root / "renamed"); (root / "delete").unlink(); (root / "mode").chmod(0o755); (root / "link").unlink(); (root / "link").symlink_to("renamed"); subprocess.run(["git", "-C", str(root), "add", "-A"], check=True); (root / "untracked").write_text("untracked", encoding="utf-8")
+            observed = _changes(root, "HEAD")
+            self.assertIn("untracked", {item["change_kind"] for item in observed}); self.assertIn("delete", {item["change_kind"] for item in observed}); self.assertIn("mode", {item["change_kind"] for item in observed}); self.assertIn("symlink", {item["change_kind"] for item in observed}); self.assertTrue(any(item.get("old_path") == "old" and item["path"] == "renamed" for item in observed))
+
+    def test_required_manifest_and_ambiguous_candidate_modules_fail_extraction(self) -> None:
+        from brpl.v4.adapters.python_static import _imports, collect
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True); (root / "x").mkdir(); (root / "y").mkdir(); (root / "a.py").write_text("import b\n", encoding="utf-8"); (root / "x" / "b.py").write_text("", encoding="utf-8"); (root / "y" / "b.py").write_text("", encoding="utf-8"); subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
+            with self.assertRaisesRegex(RuntimeError, "required candidate pyproject"):
+                collect(root, "HEAD", require_manifest=True)
+            with self.assertRaisesRegex(RuntimeError, "ambiguous candidate module"):
+                _imports(root)
+
+    def test_v4_schemas_mirror_closed_policy_and_graph_evidence_keys(self) -> None:
+        policy_schema = json.loads((ROOT / "schemas" / "brpl-v4-policy.schema.json").read_text(encoding="utf-8")); evidence_schema = json.loads((ROOT / "schemas" / "brpl-v4-evidence.schema.json").read_text(encoding="utf-8"))
+        self.assertFalse(policy_schema["additionalProperties"]); self.assertIn("repository", policy_schema["properties"]); self.assertIn("threshold", policy_schema["properties"]["rules"]["items"]["properties"]["kind"]["enum"])
+        graph = evidence_schema["properties"]["graphs"]["items"]; self.assertFalse(graph["additionalProperties"]); self.assertEqual(set(graph["required"]), {"relation", "source_universe", "target_universe", "completeness", "adapter_binding", "candidate_tree_sha256", "edges"})
+
 
 if __name__ == "__main__": unittest.main()
