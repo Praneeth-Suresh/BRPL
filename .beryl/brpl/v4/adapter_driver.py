@@ -16,14 +16,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--check-results", help="external JSON object with schema brpl-fixed-check-results/v4 and check/status records")
-    parser.add_argument("--require-pyproject", action="store_true", help="fail extraction unless candidate and baseline pyproject.toml are valid")
     args = parser.parse_args(argv)
     root = Path(args.repo_root).resolve(strict=True); output = Path(args.output).resolve(strict=False)
     if output.is_relative_to(root): parser.error("--output must be outside --repo-root")
     checks = _fixed_checks(Path(args.check_results).resolve(strict=True)) if args.check_results else []
     if args.check_results and Path(args.check_results).resolve().is_relative_to(root): parser.error("--check-results must be outside --repo-root")
     # The printed digest is the catalog value an external launch authority pins.
-    evidence = collect(root, args.base, checks, require_manifest=args.require_pyproject)
+    evidence = collect(root, args.base, checks)
     output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"adapter": args.adapter, "artifact_sha256": adapter_artifact_digest(args.adapter), "evidence": str(output)}, sort_keys=True))
     return 0

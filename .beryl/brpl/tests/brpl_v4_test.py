@@ -232,9 +232,20 @@ class BRPLV4Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True); (root / "x").mkdir(); (root / "y").mkdir(); (root / "a.py").write_text("import b\n", encoding="utf-8"); (root / "x" / "b.py").write_text("", encoding="utf-8"); (root / "y" / "b.py").write_text("", encoding="utf-8"); subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
             with self.assertRaisesRegex(RuntimeError, "required candidate pyproject"):
-                collect(root, "HEAD", require_manifest=True)
+                collect(root, "HEAD")
             with self.assertRaisesRegex(RuntimeError, "ambiguous candidate module"):
                 _imports(root)
+
+    def test_bundle_rejects_unflagged_invalid_candidate_and_missing_baseline_manifest(self) -> None:
+        from brpl.v4.adapters.python_static import collect
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True); (root / "pyproject.toml").write_text("not = [valid", encoding="utf-8"); subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
+            with self.assertRaisesRegex(RuntimeError, "invalid candidate"):
+                collect(root, "HEAD")
+            (root / "pyproject.toml").write_text("[project]\ndependencies=[]\n", encoding="utf-8")
+            subprocess.run(["git", "-C", str(root), "rm", "-q", "--cached", "pyproject.toml"], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "remove manifest"], check=True)
+            with self.assertRaisesRegex(RuntimeError, "required baseline"):
+                collect(root, "HEAD")
 
     def test_v4_schemas_mirror_closed_policy_and_graph_evidence_keys(self) -> None:
         policy_schema = json.loads((ROOT / "schemas" / "brpl-v4-policy.schema.json").read_text(encoding="utf-8")); evidence_schema = json.loads((ROOT / "schemas" / "brpl-v4-evidence.schema.json").read_text(encoding="utf-8"))

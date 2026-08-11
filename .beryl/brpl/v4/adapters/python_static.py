@@ -10,7 +10,7 @@ from typing import Any
 from ..tree import candidate_tree_hash
 
 
-def collect(root: Path, base: str, check_results: list[dict[str, str]] | None = None, relation: str = "source-import", manifest: str = "pyproject-toml", require_manifest: bool = False) -> dict[str, Any]:
+def collect(root: Path, base: str, check_results: list[dict[str, str]] | None = None, relation: str = "source-import", manifest: str = "pyproject-toml") -> dict[str, Any]:
     """Produce normalized evidence without being imported by the v4 compiler/verifier.
 
     Dynamic imports, generated sources, and runtime module resolution are outside
@@ -19,7 +19,7 @@ def collect(root: Path, base: str, check_results: list[dict[str, str]] | None = 
     """
     root = root.resolve(strict=True)
     candidate = candidate_tree_hash(root)
-    deltas = _manifest_delta(root, base, manifest, candidate, require_manifest)
+    deltas = _manifest_delta(root, base, manifest, candidate)
     return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": candidate}, "changes": _changes(root, base), "graphs": [{"relation": relation, "source_universe": "candidate-static-python-files", "target_universe": "candidate-static-python-files", "completeness": "complete", "adapter_binding": "brpl.v4.adapters.python-evidence-bundle.v1", "candidate_tree_sha256": candidate, "edges": _imports(root)}], "manifest_deltas": deltas, "checks": _checks(check_results or [], candidate), "metrics": []}
 
 
@@ -107,16 +107,14 @@ def _from_targets(node: ast.ImportFrom, source: Path, modules: dict[str, str]) -
     return targets
 
 
-def _manifest_delta(root: Path, base: str, manifest: str, candidate: str, required: bool) -> list[dict[str, Any]]:
+def _manifest_delta(root: Path, base: str, manifest: str, candidate: str) -> list[dict[str, Any]]:
     candidate_path = root / "pyproject.toml"
     if not candidate_path.is_file():
-        if required: raise RuntimeError("required candidate pyproject.toml is missing")
-        return []
+        raise RuntimeError("required candidate pyproject.toml is missing")
     current = _dependencies(candidate_path.read_bytes(), "candidate pyproject.toml")
     try: previous = _dependencies(_git(root, ["show", f"{base}:pyproject.toml"]).encode(), "baseline pyproject.toml")
-    except RuntimeError:
-        if required: raise RuntimeError("required baseline pyproject.toml is missing or unreadable")
-        previous = set()
+    except RuntimeError as exc:
+        raise RuntimeError("required baseline pyproject.toml is missing or unreadable") from exc
     return [{"manifest": manifest, "added": sorted(current - previous), "removed": sorted(previous - current), "completeness": "complete", "candidate_tree_sha256": candidate}]
 
 
