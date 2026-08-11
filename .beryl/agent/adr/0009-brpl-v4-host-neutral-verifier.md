@@ -10,7 +10,7 @@ The existing BRPL versions are valuable compatibility artifacts, but their shipp
 
 ## Decision
 
-Add an explicitly selected BRPL v4 strict JSON language and a host-neutral compiler/verifier that accepts only finite normalized evidence and never imports a language AST, package-manifest parser, legacy runtime, adapter code, or policy-defined command.
+Add an explicitly selected BRPL v4 strict JSON language and a host-neutral compiler/verifier that accepts only finite normalized evidence and never imports a language AST, package-manifest parser, legacy runtime, adapter code, or policy-defined command; expose reviewed language extraction only through separate named adapter-driver modules whose artifact digests an external catalog pins.
 
 Add finite direct-edge, reachability, component-adjacency, acyclicity, dependency-delta, required-check, path, and exact-decimal threshold predicates; graph predicates require complete candidate-bound evidence that declares relation, endpoint universes, completeness, and adapter binding.
 

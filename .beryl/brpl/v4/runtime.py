@@ -91,12 +91,14 @@ def _evaluate_rule(rule: dict[str, Any], evidence: dict[str, Any], graphs: dict[
         else: facts = _cycles(rule, graph, candidate)
         return facts, "violated" if facts else "satisfied", None
     if kind == "dependencies":
+        deltas = [item for item in evidence["manifest_deltas"] if isinstance(item, dict) and item.get("manifest") == rule["manifest"]]
+        if len(deltas) != 1: return [], "indeterminate", "V419"
+        delta = deltas[0]
+        if delta.get("candidate_tree_sha256") != candidate: return [], "indeterminate", "V411"
+        if delta.get("completeness") != "complete": return [], "indeterminate", "V420"
         facts = []
-        for delta in evidence["manifest_deltas"]:
-            if not isinstance(delta, dict) or delta.get("manifest") != rule["manifest"]: continue
-            if delta.get("candidate_tree_sha256") != candidate: return [], "indeterminate", "V411"
-            for name in sorted(set(delta.get("added", [])) - set(rule["allow_add"])): facts.append({"type": "manifest_delta", "manifest": rule["manifest"], "operation": "add", "dependency": name, "candidate_tree_sha256": candidate})
-            for name in sorted(set(delta.get("removed", [])) - set(rule["allow_remove"])): facts.append({"type": "manifest_delta", "manifest": rule["manifest"], "operation": "remove", "dependency": name, "candidate_tree_sha256": candidate})
+        for name in sorted(set(delta.get("added", [])) - set(rule["allow_add"])): facts.append({"type": "manifest_delta", "manifest": rule["manifest"], "operation": "add", "dependency": name, "candidate_tree_sha256": candidate})
+        for name in sorted(set(delta.get("removed", [])) - set(rule["allow_remove"])): facts.append({"type": "manifest_delta", "manifest": rule["manifest"], "operation": "remove", "dependency": name, "candidate_tree_sha256": candidate})
         return facts, "violated" if facts else "satisfied", None
     if kind == "require":
         result = next((item for item in evidence["checks"] if isinstance(item, dict) and item.get("check") == rule["check"]), None)

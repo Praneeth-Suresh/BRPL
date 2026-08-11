@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.enforce:
             if not args.launch_manifest: raise ValueError("--launch-manifest is required with --enforce")
             launch_path = Path(args.launch_manifest).resolve(strict=True)
-            _external(root, *paths, catalog_path, launch_path)
+            _external(root, *paths, catalog_path, evidence_path, launch_path)
             launch = _load_launch(launch_path)
             _verify_launch(launch, catalog_path, paths)
             launch_before = _digest(launch_path)

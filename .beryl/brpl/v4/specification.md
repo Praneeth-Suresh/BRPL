@@ -18,10 +18,12 @@ Each rule has a stable uppercase `id`, a `kind`, and optional enforcement severi
 
 `threshold` compares an exact integer or decimal-string metric value using only `at-most` or `at-least`; it declares the metric identifier, unit, value, and public summary, and a violation reports the value, threshold, unit, and distance.
 
-An adapter catalog has schema `brpl-adapter-catalog/v4` and only contains declarative bindings with identifiers, digests, and public summaries; relation bindings additionally declare the relation, source universe, target universe, and `complete` or `partial` catalog coverage.
+An adapter catalog has schema `brpl-adapter-catalog/v4` and only contains declarative bindings with identifiers, digests, and public summaries; relation bindings additionally declare the relation, source universe, target universe, and `complete` or `partial` catalog coverage. Catalog digests must be calculated from reviewed adapter artifacts by the external launch authority, never copied from illustrative placeholders.
 
 Graph evidence has schema `brpl-evidence/v4` and each graph declares its relation, source universe, target universe, completeness status, adapter binding, candidate-tree SHA-256, and finite edge list; graph rules fail closed if a matching graph is absent, partial, indeterminate, mismatched, or not bound to the candidate tree.
 
+Every dependency rule requires exactly one candidate-bound manifest-delta observation with `completeness` `complete`; absent, duplicate, partial, or indeterminate observations are evaluation errors rather than evidence of compliance.
+
 The report has schema `brpl-report/v4` and contains every evaluated rule in `rules`, including policy identity, policy class, enforcement severity, applicability, status, and remediation; `findings`, `violations`, and `errors` provide stable attributable evidence.
 
-Enforcement mode requires externally located policy, catalog, and launch-manifest artifacts; the launch manifest pins the catalog, policies, adapter bundle, checker, baseline, and evaluator identities and digests, which the CLI verifies before and after candidate-bound evaluation.
+Enforcement mode requires externally located policy, catalog, normalized evidence/run record, and launch-manifest artifacts; the launch manifest pins the catalog, policies, adapter bundle, checker, baseline, and evaluator identities and digests, which the CLI verifies before and after candidate-bound evaluation.
