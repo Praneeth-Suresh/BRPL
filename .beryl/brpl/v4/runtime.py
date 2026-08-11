@@ -12,6 +12,7 @@ from .compiler import BRPLCompileError, canonical_json, validate_plan
 EVIDENCE_SCHEMA = "brpl-evidence/v4"
 REPORT_SCHEMA = "brpl-report/v4"
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
+_COMMIT = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 
 
 class BRPLVerificationError(ValueError):
@@ -23,13 +24,16 @@ class BRPLVerificationError(ValueError):
 
 def validate_evidence(value: Any) -> dict[str, Any]:
     """Validate evidence as data; no adapters or commands are executed here."""
-    if not isinstance(value, dict) or set(value) != {"schema", "candidate_tree", "changes", "graphs", "manifest_deltas", "checks", "metrics"}:
+    if not isinstance(value, dict) or set(value) != {"schema", "candidate_tree", "baseline", "changes", "graphs", "manifest_deltas", "checks", "metrics"}:
         raise BRPLVerificationError("V400", "evidence has invalid fields")
     if value["schema"] != EVIDENCE_SCHEMA:
         raise BRPLVerificationError("V401", f"evidence.schema must be {EVIDENCE_SCHEMA}")
     candidate = value["candidate_tree"]
     if not isinstance(candidate, dict) or set(candidate) != {"sha256"} or not isinstance(candidate["sha256"], str) or not _DIGEST.fullmatch(candidate["sha256"]):
         raise BRPLVerificationError("V402", "candidate_tree must contain a SHA-256")
+    baseline = value["baseline"]
+    if not isinstance(baseline, dict) or set(baseline) != {"sha256"} or not isinstance(baseline["sha256"], str) or not _COMMIT.fullmatch(baseline["sha256"]):
+        raise BRPLVerificationError("V421", "baseline must contain a Git commit SHA-256")
     for key in ("changes", "graphs", "manifest_deltas", "checks", "metrics"):
         if not isinstance(value[key], list): raise BRPLVerificationError("V403", f"evidence.{key} must be a list")
     for graph in value["graphs"]: _validate_graph(graph, candidate["sha256"])

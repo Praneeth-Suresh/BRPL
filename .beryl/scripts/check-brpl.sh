@@ -29,8 +29,8 @@ case "${enforcement}" in
     ;;
 esac
 
-if [[ "${policy_version}" != "v2" && "${policy_version}" != "v3" ]]; then
-  printf "ERROR: BRPL_POLICY_VERSION must be v2 or v3 when set\n" >&2
+if [[ "${policy_version}" != "v2" && "${policy_version}" != "v3" && "${policy_version}" != "v4" ]]; then
+  printf "ERROR: BRPL_POLICY_VERSION must be v2, v3, or v4 when set\n" >&2
   exit 2
 fi
 
@@ -132,6 +132,30 @@ except Exception as exc:
 print(resolved)
 ' "${label}" "${path}" "${REPO_ROOT}"
 }
+
+if [[ "${policy_version}" == "v4" ]]; then
+  if [[ "${enforcement}" != "enforce" ]]; then
+    printf "ERROR: BRPL_POLICY_VERSION=v4 requires BRPL_ENFORCEMENT=enforce\n" >&2
+    exit 2
+  fi
+  select_python
+  for required in BRPL_REPOSITORY_POLICY BRPL_TASK_POLICY BRPL_CATALOG BRPL_EVIDENCE BRPL_LAUNCH_MANIFEST; do
+    if [[ -z "${!required:-}" ]]; then
+      printf "ERROR: BRPL_POLICY_VERSION=v4 requires explicit %s\n" "${required}" >&2
+      exit 2
+    fi
+  done
+  repo_policy="$(resolve_external_file "repository policy" "${BRPL_REPOSITORY_POLICY}")"
+  task_policy="$(resolve_external_file "task policy" "${BRPL_TASK_POLICY}")"
+  catalog="$(resolve_external_file "catalog" "${BRPL_CATALOG}")"
+  evidence="$(resolve_external_file "evidence" "${BRPL_EVIDENCE}")"
+  launch="$(resolve_external_file "launch manifest" "${BRPL_LAUNCH_MANIFEST}")"
+  json_args=()
+  if [[ -n "${BRPL_JSON_REPORT:-}" ]]; then json_args+=(--json-report "${BRPL_JSON_REPORT}"); fi
+  printf "check-brpl: evaluating explicit BRPL v4 policies\n"
+  PYTHONPATH="${BERYL_ROOT}${PYTHONPATH:+:${PYTHONPATH}}" "${python_bin}" -m brpl.v4 --repo-root "${REPO_ROOT}" --policy "${repo_policy}" --policy "${task_policy}" --catalog "${catalog}" --evidence "${evidence}" --launch-manifest "${launch}" --enforce "${json_args[@]}"
+  exit $?
+fi
 
 if [[ "${enforcement}" == "enforce" ]]; then
   if [[ -z "${BRPL_REPOSITORY_POLICY:-}" || -z "${BRPL_TASK_POLICY:-}" ]]; then

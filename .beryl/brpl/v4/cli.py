@@ -47,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
             _verify_launch(launch, catalog_path, paths, plan)
         evidence = validate_evidence(_json(evidence_path))
         if evidence["candidate_tree"]["sha256"] != candidate_before: raise ValueError("evidence is not bound to the candidate tree before evaluation")
+        if args.enforce and evidence["baseline"]["sha256"] != launch["baseline"]["id"]: raise ValueError("evidence baseline does not match launch baseline identity")
         report = evaluate_plan(plan, evidence)
         if args.enforce:
             if candidate_tree_hash(root) != candidate_before: raise ValueError("candidate tree changed during evaluation")

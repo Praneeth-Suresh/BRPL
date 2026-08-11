@@ -1001,6 +1001,14 @@ class BRPLPolicyTest(unittest.TestCase):
         self.assertEqual(off.returncode, 0)
         self.assertIn("BRPL_ENFORCEMENT=off", off.stdout)
 
+        v4_missing = subprocess.run(
+            [str(script)], cwd=Path(__file__).resolve().parents[3],
+            env={**os.environ, "BRPL_POLICY_VERSION": "v4", "BRPL_ENFORCEMENT": "enforce"},
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
+        )
+        self.assertEqual(v4_missing.returncode, 2)
+        self.assertIn("BRPL_REPOSITORY_POLICY", v4_missing.stderr)
+
         with tempfile.TemporaryDirectory() as policy_dir:
             policy_root = Path(policy_dir)
             repo_policy = policy_root / "repo.yml"

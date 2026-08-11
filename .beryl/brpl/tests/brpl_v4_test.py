@@ -33,7 +33,7 @@ def policy(rules: list[dict[str, object]], components: list[dict[str, object]] |
 
 
 def evidence(graphs: list[dict[str, object]] | None = None, metrics: list[dict[str, object]] | None = None) -> dict[str, object]:
-    return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": HASH}, "changes": [], "graphs": graphs or [], "manifest_deltas": [], "checks": [], "metrics": metrics or []}
+    return {"schema": "brpl-evidence/v4", "candidate_tree": {"sha256": HASH}, "baseline": {"sha256": HASH}, "changes": [], "graphs": graphs or [], "manifest_deltas": [], "checks": [], "metrics": metrics or []}
 
 
 def graph(edges: list[dict[str, str]], completeness: str = "complete") -> dict[str, object]:
@@ -114,7 +114,7 @@ class BRPLV4Test(unittest.TestCase):
             evidence_path.write_text(json.dumps({**evidence(), "candidate_tree": {"sha256": tree}}), encoding="utf-8")
             launch_path = outer / "launch.json"
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch = {"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", adapter), "checker": pin("checker", checker), "baseline": pin("baseline", baseline), "evaluator": pin("evaluator", evaluator)}
+            launch = {"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", adapter), "checker": pin("checker", checker), "baseline": pin(HASH, baseline), "evaluator": pin("evaluator", evaluator)}
             launch_path.write_text(json.dumps(launch), encoding="utf-8")
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 0)
             launch["checker"]["sha256"] = "0" * 64; launch_path.write_text(json.dumps(launch), encoding="utf-8")
@@ -130,7 +130,7 @@ class BRPLV4Test(unittest.TestCase):
             for name in ("adapter", "checker", "baseline", "evaluator"):
                 path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin(HASH, authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
             from brpl.v4 import cli
             original = cli.evaluate_plan
             def mutate(plan: dict[str, object], observed: dict[str, object]) -> dict[str, object]:
@@ -149,7 +149,7 @@ class BRPLV4Test(unittest.TestCase):
             for name in ("adapter", "checker", "baseline", "evaluator"):
                 path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin(HASH, authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path), "--json-report", str(report_path)]), 2)
             self.assertEqual(json.loads(report_path.read_text(encoding="utf-8"))["outcome"], "blocked_evaluation_error")
 
@@ -174,7 +174,7 @@ class BRPLV4Test(unittest.TestCase):
             for name in ("adapter-bundle", "checker", "baseline", "evaluator"):
                 path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
             pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [pin("imports", mismatched)], "adapter_bundle": pin("adapter-bundle", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "capabilities": [pin("imports", mismatched)], "adapter_bundle": pin("adapter-bundle", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin(HASH, authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 2)
 
     def test_python_adapter_is_a_separate_pinned_artifact(self) -> None:
