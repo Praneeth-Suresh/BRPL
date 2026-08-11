@@ -4,6 +4,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from brpl.v4 import BRPLCompileError, BRPLVerificationError, compile_policies, evaluate_plan, load_catalog, parse_policy
@@ -116,6 +117,25 @@ class BRPLV4Test(unittest.TestCase):
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 0)
             launch["checker"]["sha256"] = "0" * 64; launch_path.write_text(json.dumps(launch), encoding="utf-8")
             self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 2)
+
+    def test_enforce_mode_blocks_candidate_substitution_during_evaluation(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            outer = Path(temporary); root = outer / "candidate"; root.mkdir(); candidate_file = root / "app.txt"; candidate_file.write_text("before", encoding="utf-8")
+            policy_path = outer / "policy.json"; catalog_path = outer / "catalog.json"; evidence_path = outer / "evidence.json"; launch_path = outer / "launch.json"
+            policy_path.write_text(json.dumps(policy([])), encoding="utf-8"); catalog_path.write_text(json.dumps(catalog()), encoding="utf-8")
+            tree = __import__("brpl.v4.cli", fromlist=["_tree_hash"])._tree_hash(root); evidence_path.write_text(json.dumps({**evidence(), "candidate_tree": {"sha256": tree}}), encoding="utf-8")
+            authorities = []
+            for name in ("adapter", "checker", "baseline", "evaluator"):
+                path = outer / name; path.write_text(name, encoding="utf-8"); authorities.append(path)
+            pin = lambda label, path: {"id": label, "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+            launch_path.write_text(json.dumps({"schema": "brpl-launch-manifest/v4", "catalog": pin("catalog", catalog_path), "policies": [pin("policy", policy_path)], "adapter_bundle": pin("adapter", authorities[0]), "checker": pin("checker", authorities[1]), "baseline": pin("baseline", authorities[2]), "evaluator": pin("evaluator", authorities[3])}), encoding="utf-8")
+            from brpl.v4 import cli
+            original = cli.evaluate_plan
+            def mutate(plan: dict[str, object], observed: dict[str, object]) -> dict[str, object]:
+                candidate_file.write_text("after", encoding="utf-8")
+                return original(plan, observed)
+            with patch("brpl.v4.cli.evaluate_plan", mutate):
+                self.assertEqual(cli_main(["--repo-root", str(root), "--policy", str(policy_path), "--catalog", str(catalog_path), "--evidence", str(evidence_path), "--enforce", "--launch-manifest", str(launch_path)]), 2)
 
 
 if __name__ == "__main__": unittest.main()
