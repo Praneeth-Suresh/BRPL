@@ -190,14 +190,24 @@ class BRPLV4Test(unittest.TestCase):
         from brpl.v4.adapters.python_static import collect
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); subprocess.run(["git", "init", "-q", str(root)], check=True); subprocess.run(["git", "-C", str(root), "config", "user.email", "test@example.invalid"], check=True); subprocess.run(["git", "-C", str(root), "config", "user.name", "Test"], check=True)
-            (root / "a.py").write_text("import b\n", encoding="utf-8"); (root / "b.py").write_text("VALUE = 1\n", encoding="utf-8"); (root / "pyproject.toml").write_text("[project]\ndependencies = ['one>=1']\n", encoding="utf-8")
+            (root / "pkg").mkdir(); (root / "pkg" / "__init__.py").write_text("", encoding="utf-8"); (root / "pkg" / "a.py").write_text("from . import b\nfrom .b import VALUE\n", encoding="utf-8"); (root / "pkg" / "b.py").write_text("VALUE = 1\n", encoding="utf-8"); (root / "pyproject.toml").write_text("[project]\ndependencies = ['one>=1']\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(root), "add", "."], check=True); subprocess.run(["git", "-C", str(root), "commit", "-qm", "baseline"], check=True)
             (root / "pyproject.toml").write_text("[project]\ndependencies = ['one>=1', 'two>=2']\n", encoding="utf-8")
             observed = collect(root, "HEAD", [{"check": "unit", "status": "pass"}])
             self.assertEqual(observed["graphs"][0]["completeness"], "complete")
-            self.assertIn({"source": "a.py", "target": "b.py"}, observed["graphs"][0]["edges"])
+            self.assertIn({"source": "pkg/a.py", "target": "pkg/b.py"}, observed["graphs"][0]["edges"])
             self.assertEqual(observed["manifest_deltas"][0]["added"], ["two>=2"])
             self.assertEqual(observed["checks"][0]["candidate_tree_sha256"], observed["candidate_tree"]["sha256"])
+            policy_value = policy([{"id": "EDGE-001", "kind": "forbid-edge", "relation": "imports", "from": "pkg/a.py", "to": "pkg/b.py"}])
+            catalog_value = catalog(); relation = next(item for item in catalog_value["adapters"] if item["id"] == "imports"); relation.update({"binding": "brpl.v4.adapters.python-evidence-bundle.v1", "source_universe": "candidate-static-python-files", "target_universe": "candidate-static-python-files"})
+            self.assertFalse(evaluate_plan(compile_policies([policy_value], catalog_value), observed)["ok"])
+
+    def test_unresolved_relative_import_fails_complete_static_extraction(self) -> None:
+        from brpl.v4.adapters.python_static import _imports
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); (root / "pkg").mkdir(); (root / "pkg" / "__init__.py").write_text("", encoding="utf-8"); (root / "pkg" / "a.py").write_text("from . import missing\n", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "cannot resolve local relative import"):
+                _imports(root)
 
 
 if __name__ == "__main__": unittest.main()

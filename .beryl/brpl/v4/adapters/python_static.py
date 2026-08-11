@@ -51,10 +51,40 @@ def _imports(root: Path) -> list[dict[str, str]]:
                 for name in node.names:
                     target = modules.get(name.name)
                     if target: edges.append({"source": relative, "target": target})
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                target = modules.get(node.module)
-                if target: edges.append({"source": relative, "target": target})
-    return sorted(edges, key=lambda item: (item["source"], item["target"]))
+            elif isinstance(node, ast.ImportFrom):
+                for target_module in _from_targets(node, source.relative_to(root), modules):
+                    target = modules.get(target_module)
+                    if not target:
+                        raise RuntimeError(f"cannot resolve local relative import {target_module!r} from {relative}")
+                    edges.append({"source": relative, "target": target})
+    return [{"source": source, "target": target} for source, target in sorted({(item["source"], item["target"]) for item in edges})]
+
+
+def _from_targets(node: ast.ImportFrom, source: Path, modules: dict[str, str]) -> list[str]:
+    """Resolve static ImportFrom module dependencies within the candidate index.
+
+    Absolute imports only contribute when their exact module is a candidate module.
+    Every relative import is relevant to the declared candidate static-Python
+    universe and therefore raises instead of silently disappearing if unresolved.
+    """
+    if node.level == 0:
+        return [node.module] if node.module and modules.get(node.module) else []
+    parts = list(source.with_suffix("").parts)
+    package = parts[:-1] if parts[-1] != "__init__" else parts[:-1]
+    remaining = len(package) - (node.level - 1)
+    if remaining < 0:
+        raise RuntimeError(f"relative import climbs above candidate package from {source.as_posix()}")
+    prefix = package[:remaining]
+    if node.module:
+        target = ".".join([*prefix, *node.module.split(".")])
+        return [target]
+    targets: list[str] = []
+    for alias in node.names:
+        target = ".".join([*prefix, alias.name])
+        if not target:
+            raise RuntimeError(f"relative import has no candidate module from {source.as_posix()}")
+        targets.append(target)
+    return targets
 
 
 def _manifest_delta(root: Path, base: str, manifest: str, candidate: str) -> dict[str, Any]:
