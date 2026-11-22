@@ -1,157 +1,40 @@
-<p align="center">
-<img src="assets/beryl-logo.svg" alt="Beryl faceted emerald logo mark" width="220" />
-</p>
+# BRPL: Beryl Repository Policy Language
 
-<h1 align="center">Beryl</h1>
+**Research prototype for checking repository rules against a proposed code change.**
 
-<p align="center">
-<strong>Make Repositories Ready For Agents</strong>
-</p>
+Coding agents can read rules in prose, but their output does not show which rules they followed. BRPL represents selected rules as data and checks them against evidence about a candidate change. The research question is whether machine-readable rules and deterministic enforcement improve coding-agent outcomes over equivalent instructions written in prose.
 
-<p align="center">
-<img src="https://img.shields.io/static/v1?label=repository&message=agent-ready&color=0f766e&labelColor=111827&style=flat-square" alt="Agent-ready repository" /> <img src="https://img.shields.io/static/v1?label=checks&message=deterministic&color=2563eb&labelColor=111827&style=flat-square" alt="Deterministic checks" /> <img src="https://img.shields.io/static/v1?label=review&message=human-owned&color=111827&labelColor=111827&style=flat-square" alt="Human-owned review" /> <img src="https://img.shields.io/static/v1?label=control%20plane&message=installable&color=b45309&labelColor=111827&style=flat-square" alt="Installable control plane" />
-</p>
+This repository is the policy-language research fork. For the general-purpose tooling and setup guide, see [upstream Beryl](https://github.com/Praneeth-Suresh/Beryl).
 
-<p align="center">
-<img src="assets/beryl-readme-hero.png" alt="Beryl launch slide: Hard guarantees for agent-ready repositories" width="960" />
-</p>
+## One policy, one verdict
 
-Beryl is a hard guarantee layer for AI-assisted development. It turns the agent workflow into files, checks, and review-ready boundaries before agent output is trusted.
+The [v2 example policy](.beryl/brpl/examples/v2/brpl.repository.yml) includes this rule:
 
-You get repository-owned defaults for where the contract lives, how work is routed, and which checks run. Beryl does not replace review. It makes review and recovery easier.
-
-## Quick Start
-
-**Recommended first read:** [Quickstart.md](./Quickstart.md) — short, story-style onboarding from first read to first safe agent task.
-
-### Set Up With a Coding Agent
-
-Give your coding agent this prompt:
-
-```text
-Set up Beryl for this repository. Read and follow
-.beryl/agent/skills/using-beryl/SKILL.md for the complete setup and working
-instructions. Run the prescribed checks and report the results.
+```yaml
+- id: ARCH-001
+  kind: dependency.forbid
+  relation: python_import
+  source: src/api/**
+  target: src/persistence/internal/**
+  severity: error
+  remediation: change_dependency
 ```
 
-Recommended install: download and run the installer pinned to a ref you trust (a tag or commit SHA instead of the moving `main`):
+The [checked-in test case](.beryl/brpl/examples/v2/policy-tests.yml) describes a proposed change to `src/api/service.py` that imports `src/persistence/internal/store.py`. Its unit and lint checks both pass, but the evaluator reports an `ARCH-001` violation. The [passing fixture](.beryl/brpl/examples/v2/evidence.pass.yml) uses a permitted import rather than crossing that boundary.
 
-Linux/macOS:
+A passing verdict means the supplied evidence satisfies the configured rules. It does not prove the code is correct, cover behavior outside those rules, or replace review. The verifier compares data; a separate trusted harness is responsible for collecting evidence and binding check results to the candidate.
 
-```bash
-BERYL_REF=main
-curl --proto '=https' --tlsv1.2 -fsSL \
-  https://raw.githubusercontent.com/Praneeth-Suresh/Beryl/main/install.sh -o beryl-install.sh
-sh beryl-install.sh --ref "$BERYL_REF" --interactive
+## Inspect the prototype
+
+- [BRPL v2](.beryl/brpl/v2/README.md): current typed evaluator, evidence format, and fixtures.
+- [BRPL v3](.beryl/brpl/v3/README.md) and [BRPL v4](.beryl/brpl/v4/README.md): prospective language and verifier designs.
+
+From a local checkout, use Python 3.11 or newer to run the focused v2 test suite, which includes the example above:
+
+```sh
+PYTHONPATH=.beryl python3 -m unittest discover -s .beryl/brpl/tests -p 'brpl_v2_test.py'
 ```
 
-Windows: download in PowerShell, then run the installer from Git Bash or WSL (native PowerShell execution is not supported):
+## Evidence status
 
-```powershell
-$env:BERYL_REF = "main"
-Invoke-WebRequest `
-  -Uri "https://raw.githubusercontent.com/Praneeth-Suresh/Beryl/main/install.sh" `
-  -OutFile "beryl-install.sh"
-bash -lc 'sh beryl-install.sh --ref "$BERYL_REF" --interactive'
-```
-
-For repeatable installs, replace `main` with a trusted tag or commit SHA before running the command. The interactive command asks which component set to install, including whether to include driver workflows, and whether a coding agent should help fill Beryl project context.
-
-Convenience one-liner (executes remote code without inspection — only use it when you accept that trade-off):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Praneeth-Suresh/Beryl/main/install.sh | sh
-```
-
-## The Three Commands That Matter
-
-| Script | What it does |
-| --- | --- |
-| `install.sh` | Remote install entry point. It installs selected Beryl profiles or components into the current repository. |
-| `.beryl/scripts/setup-project.sh` | Interactive onboarding for an existing or new project. It lets you choose the component set, including whether driver workflows are installed, and whether a coding agent should help fill project context. |
-| `.beryl/scripts/check.sh` | Deterministic safety gate for Markdown, test-manifest integrity, and configured project checks. |
-| `.beryl/scripts/check-brpl.sh` | Opt-in machine-readable policy gate. It runs only when BRPL policy files are configured and `BRPL_BASE_REF` names the Git baseline. |
-
-Install Beryl into another project interactively:
-
-```bash
-./.beryl/scripts/setup-project.sh /path/to/project
-```
-
-Run the primary repo safety gate:
-
-```bash
-./.beryl/scripts/check.sh
-```
-
-Use the optional BRPL policy gate by adding policy files under `.beryl/policy/` and running with an explicit baseline:
-
-```bash
-BRPL_BASE_REF=origin/main ./.beryl/scripts/check.sh
-```
-
-Policy evaluation requires Python 3.11 or newer. For external evaluation, set `BRPL_ENFORCEMENT=enforce` with explicit evaluator-owned `BRPL_REPOSITORY_POLICY`, `BRPL_TASK_POLICY`, and `BRPL_CHECK_REGISTRY` paths outside the evaluated repository; missing, unreadable, deleted, repo-local, or wrong-kind inputs fail closed. Use `--format json` for stdout reports, or write `--json-report` to an external evaluator-owned path outside the repository.
-
-See [.beryl/brpl/v2/README.md](./.beryl/brpl/v2/README.md) for the active v2 schema, examples, typed evidence, JSON reports, and trusted check registry format.
-
-Detailed install flags, profiles, component examples, bootstrap controls, and hook troubleshooting live in [.beryl/scripts/README.md](./.beryl/scripts/README.md).
-
-## Documentation Map
-
-Use this map before opening multiple files:
-
-- User docs and references
-  - [Quickstart.md](./Quickstart.md): Fast path to your first safe task.
-  - [README.md](./README.md): Entry point and decision guide.
-  - [Theory.md](./Theory.md): Goals, motivations, and project reasoning.
-  - [Practise.md](./Practise.md): Applied examples.
-  - [Cheatsheet.md](./Cheatsheet.md): Canonical command-and-workflow reference.
-  - [RepositoryUpkeep.md](./RepositoryUpkeep.md): Tracked process for idea intake, material promotion, maintenance cadence, and upkeep verification.
-  - [AgenticSecurity.md](./AgenticSecurity.md): Security controls, hardening status, and near-term roadmap for agentic coding workflows.
-  - `current.md`: Ignored local scratch context; promote durable material into tracked docs instead.
-  - [gitignore-sample.md](./gitignore-sample.md): Ignore pattern template.
-  - [assets/brand/beryl-brand-guide.md](./assets/brand/beryl-brand-guide.md): Brand and messaging reference.
-- Agent instruction surfaces
-  - [AGENTS.md](./AGENTS.md): Runtime AGENTS shim; source edits should start from `.beryl/agent/tool-instruction-template.md`.
-  - [CLAUDE.md](./CLAUDE.md): Runtime Claude shim; source edits should start from `.beryl/agent/tool-instruction-template.md`.
-  - [.cursor/rules/agent-rules.md](./.cursor/rules/agent-rules.md): Runtime Cursor shim; source edits should start from `.beryl/agent/agent-rules.md`.
-  - [.github/copilot-instructions.md](./.github/copilot-instructions.md): Runtime Copilot shim; source edits should start from `.beryl/agent/agent-rules.md`.
-  - [.codex/AGENTS.md](./.codex/AGENTS.md): Runtime Codex shim; source edits should start from `.beryl/agent/agent-rules.md`.
-  - [.github/workflows/deterministic-checks.yml](./.github/workflows/deterministic-checks.yml): deterministic CI entrypoint.
-- Reference, design, and operational material
-  - [.beryl/agent/task-routing.md](./.beryl/agent/task-routing.md): Route each request to the correct workflow.
-  - [.beryl/agent/project-brief.md](./.beryl/agent/project-brief.md): Product goal and scope.
-  - [.beryl/agent/design-tree.md](./.beryl/agent/design-tree.md): Evolving and settled design notes.
-  - [.beryl/agent/architecture.md](./.beryl/agent/architecture.md): Bounded-context ownership.
-  - [.beryl/agent/ubiquitous-language.md](./.beryl/agent/ubiquitous-language.md): Canonical project vocabulary.
-  - [.beryl/agent/testing-policy.md](./.beryl/agent/testing-policy.md): Check commands and testing expectations.
-  - [.beryl/agent/agent-rules.md](./.beryl/agent/agent-rules.md): Repo-level operating defaults.
-  - [.beryl/agent/skills/adding-features/SKILL.md](./.beryl/agent/skills/adding-features/SKILL.md): Approved feature implementation path.
-  - [.beryl/agent/skills/planning/SKILL.md](./.beryl/agent/skills/planning/SKILL.md): Planning workflow.
-  - [.beryl/agent/skills/debugging/SKILL.md](./.beryl/agent/skills/debugging/SKILL.md): Debug workflow.
-  - [.beryl/driver/README.md](./.beryl/driver/README.md): Driver behavior and session flow.
-  - [.beryl/agent/README.md](./.beryl/agent/README.md): Source-of-truth index for agent contexts.
-
-## Operating Model
-
-| Layer                | Purpose                                                |
-| -------------------- | ------------------------------------------------------ |
-| Human intent         | Defines the desired outcome                            |
-| Agent routing        | Selects the right workflow before edits                |
-| Repository rules     | Provides the persistent contract from`.beryl/agent/` |
-| Deterministic checks | Verifies edits through`./.beryl/scripts/check.sh`    |
-| Human review         | Keeps final ownership with the user                    |
-
-## Value Ladder
-
-Beryl starts as a practical safety layer for one repository, then scales without changing the operating model:
-
-<p align="center">
-<img src="assets/beryl-value-ladder.png" alt="Beryl value ladder: start with one repo, then scale to an engineering team and company fleet" width="960" />
-</p>
-
-## Origin
-
-Beryl started as a practical answer to unattended agent runs that were hard to supervise. The repository now carries the control plane so the process is explicit, repeated, and reviewable.
-
-Interested in this area? Email me at praneeth.suresh.s@gmail.com.
+The repository provides implementations, fixtures, and tests of verifier behavior. Those tests do not establish that policy enforcement improves coding-agent outcomes. In particular, prospective prototypes and development checks are not confirmatory evidence. This README makes no comparative benchmark claim.
